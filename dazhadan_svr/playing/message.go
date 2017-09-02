@@ -136,8 +136,11 @@ func NewSwitchOperatorMsg(owner *Player, data *SwitchOperatorMsgData) *Message {
 
 type PlayerJiesuanData struct {
 	P *Player
+	Rank int32
+	Coin int32
 	Score int32
-	Paixing int
+	Prize int32
+	TotalCoin int32
 }
 
 //结算消息
@@ -187,7 +190,9 @@ func NewRoomClosedMsg(owner *Player, data *RoomClosedMsgData) *Message{
 }
 
 //出牌的消息
-type DropMsgData struct {}
+type DropMsgData struct {
+	WhatGroup []*card.Card
+}
 func NewDropMsg(owner *Player, data *DropMsgData) *Message{
 	return newMsg(MsgDrop, owner, data)
 }

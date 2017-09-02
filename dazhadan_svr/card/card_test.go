@@ -7,20 +7,20 @@ import (
 
 func TestCard(t *testing.T) {
 	card1 := &Card{
-		CardType: CardType_Fangpian,
+		CardType: CardType_Diamond,
 		CardNo: 1,
 	}
 	card2 := &Card{
-		CardType: CardType_Meihua,
+		CardType: CardType_Club,
 		CardNo: 1,
 	}
 	card3 := &Card{
-		CardType: CardType_Fangpian,
+		CardType: CardType_Diamond,
 		CardNo: 1,
 	}
 
 	card4 := &Card{
-		CardType: CardType_Meihua,
+		CardType: CardType_Club,
 		CardNo: 2,
 	}
 	assert.Equal(t, card1.SameAs(card3), true)

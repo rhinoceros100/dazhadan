@@ -3,6 +3,7 @@ package card
 import (
 	"sort"
 	"dazhadan/dazhadan_svr/util"
+	"dazhadan/dazhadan_svr/log"
 )
 
 type Cards struct {
@@ -28,6 +29,20 @@ func CreateNewCards(cardSlice []*Card) *Cards{
 	return &Cards{
 		Data: newCardSlice,
 	}
+}
+
+func CopyCards(cardSlice []*Card) []*Card{
+	newCardSlice := make([]*Card, 0)
+	for _, card := range cardSlice {
+		new_card := &Card{
+			CardNo:card.CardNo,
+			CardType:card.CardType,
+			CardId:card.CardId,
+			Weight:card.Weight,
+		}
+		newCardSlice = append(newCardSlice, new_card)
+	}
+	return newCardSlice
 }
 
 //获取cards的数据
@@ -57,10 +72,10 @@ func (cards *Cards) Less(i, j int) bool {
 	}
 
 	if cardI.CardNo != cardJ.CardNo {
-		return cardI.CardNo < cardJ.CardNo
+		return cardI.Weight > cardJ.Weight
 	}
 
-	if cardI.CardType < cardJ.CardType {
+	if cardI.CardType > cardJ.CardType {
 		return true
 	}
 	return false
@@ -102,6 +117,45 @@ func (cards *Cards) AppendCards(other *Cards) {
 	cards.Data = append(cards.Data, other.Data...)
 }
 
+//取走一组指定的牌，并返回成功或者失败
+func (cards *Cards) TakeWayGroup(drop_cards []*Card) bool {
+	if drop_cards == nil || len(drop_cards) == 0 {
+		return true
+	}
+
+	//查找这些牌是否都在cards中
+	cards_len := len(drop_cards)
+	same_num := 0
+	for _, drop_card := range drop_cards {
+		for _, card := range cards.Data {
+			if card.SameAs(drop_card) {
+				same_num ++
+				break
+			}
+		}
+	}
+	//log.Debug("cards_len:", cards_len, ", same_num:", same_num)
+	if cards_len != same_num {
+		return false
+	}
+
+	//log.Debug(cards)
+	//log.Debug(drop_cards)
+	//删除相应的牌
+	for _, drop_card := range drop_cards {
+		//log.Debug("compare", drop_card)
+		for idx, card := range cards.Data {
+			if card.SameAs(drop_card) {
+				//log.Debug("same", drop_card)
+				cards.Data = append(cards.Data[0:idx], cards.Data[idx + 1:]...)
+				break
+			}
+		}
+	}
+	log.Debug("left==", cards)
+	return true
+}
+
 //取走一张指定的牌，并返回成功或者失败
 func (cards *Cards) TakeWay(drop *Card) bool {
 	if drop == nil {
@@ -127,11 +181,12 @@ func (cards *Cards) PopFront() *Card {
 }
 
 //取走最后一张牌
-func (cards *Cards) Tail() *Card {
-	if cards.Len() == 0 {
+func (cards *Cards) Tail(num int) []*Card {
+	cards_len := cards.Len()
+	if cards_len < num {
 		return nil
 	}
-	return cards.At(cards.Len()-1)
+	return cards.Data[cards_len - num:]
 }
 
 //随机取走一张牌

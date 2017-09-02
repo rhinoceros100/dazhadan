@@ -71,8 +71,8 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 			log.Debug(log_time, player, "OnMsg MsgSwitchOperator", msg.Owner)
 		}
 	case playing.MsgDrop:
-		if _, ok := msg.Data.(*playing.DropMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner)
+		if drop_data, ok := msg.Data.(*playing.DropMsgData); ok {
+			log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "cards:", drop_data.WhatGroup)
 		}
 	case playing.MsgGuo:
 		if _, ok := msg.Data.(*playing.GuoMsgData); ok {
@@ -82,7 +82,7 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		if jiesuan_data, ok := msg.Data.(*playing.JiesuanMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgJiesuan, jiesuan_data:")
 			for _, score_data := range jiesuan_data.Scores	{
-				log.Debug(score_data.P, score_data.P.IsMaster(), "Score:", score_data.Score, score_data.Paixing)
+				log.Debug(score_data.P, score_data.P.IsMaster(), "Score:", score_data.Rank, score_data.TotalCoin)
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func main() {
 		robots[0].OperateDoReady()
 		time.Sleep(time.Second * 2)
 		robots[1].OperateDoReady()
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 2)
 		robots[2].OperateDoReady()
 		//curPlayer.OperateDoReady()
 	}()

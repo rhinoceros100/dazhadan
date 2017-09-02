@@ -38,3 +38,12 @@ func (playingCards *PlayingCards) String() string{
 		playingCards.CardsInHand,
 	)
 }
+
+func (playingCards *PlayingCards) Tail(num int) []*Card {
+	return playingCards.CardsInHand.Tail(num)
+}
+
+//丢弃一张牌
+func (playingCards *PlayingCards) DropCards(cards []*Card) bool {
+	return playingCards.CardsInHand.TakeWayGroup(cards)
+}

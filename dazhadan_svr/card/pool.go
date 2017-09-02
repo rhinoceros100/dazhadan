@@ -19,58 +19,64 @@ func NewPool() *Pool {
 func (pool *Pool) generate() {
 	for cardNo := 1 ; cardNo <= 13; cardNo ++ {
 		for num := 0; num < CARD_PACKS; num ++ {
-			card_fang := &Card{
-				CardType_Fangpian,
+			card_diamond := &Card{
+				CardType_Diamond,
 				cardNo,
 				0,
-			}
-			card_fang.CardId = card_fang.MakeID(num)
-
-			card_mei := &Card{
-				CardType_Meihua,
-				cardNo,
 				0,
 			}
-			card_mei.CardId = card_mei.MakeID(num)
+			card_diamond.MakeIDWeight(num)
 
-			card_hong := &Card{
-				CardType_Hongtao,
+			card_club := &Card{
+				CardType_Club,
 				cardNo,
 				0,
-			}
-			card_hong.CardId = card_hong.MakeID(num)
-
-			card_hei := &Card{
-				CardType_Heitao,
-				cardNo,
 				0,
 			}
-			card_hei.CardId = card_hei.MakeID(num)
+			card_club.MakeIDWeight(num)
 
-			pool.cards.AppendCard(card_fang)
-			pool.cards.AppendCard(card_mei)
-			pool.cards.AppendCard(card_hong)
-			pool.cards.AppendCard(card_hei)
+			card_heart := &Card{
+				CardType_Heart,
+				cardNo,
+				0,
+				0,
+			}
+			card_heart.MakeIDWeight(num)
+
+			card_spade := &Card{
+				CardType_Spade,
+				cardNo,
+				0,
+				0,
+			}
+			card_spade.MakeIDWeight(num)
+
+			pool.cards.AppendCard(card_diamond)
+			pool.cards.AppendCard(card_club)
+			pool.cards.AppendCard(card_heart)
+			pool.cards.AppendCard(card_spade)
 		}
 	}
 
 	for num := 0; num < CARD_PACKS; num ++ {
-		card_xiaowang := &Card{
-			CardType_Xiaowang,
+		card_blackJoker := &Card{
+			CardType_BlackJoker,
 			14,
 			0,
-		}
-		card_xiaowang.CardId = card_xiaowang.MakeID(num)
-
-		card_dawang := &Card{
-			CardType_Xiaowang,
-			14,
 			0,
 		}
-		card_dawang.CardId = card_dawang.MakeID(num)
+		card_blackJoker.MakeIDWeight(num)
 
-		pool.cards.AppendCard(card_xiaowang)
-		pool.cards.AppendCard(card_dawang)
+		card_redjoker := &Card{
+			CardType_RedJoker,
+			14,
+			0,
+			0,
+		}
+		card_redjoker.MakeIDWeight(num)
+
+		pool.cards.AppendCard(card_blackJoker)
+		pool.cards.AppendCard(card_redjoker)
 	}
 }
 

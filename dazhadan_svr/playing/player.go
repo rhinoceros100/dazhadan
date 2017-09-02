@@ -18,11 +18,12 @@ type Player struct {
 	isReady			bool
 
 	isDadu			bool
-	isScramble		bool
-	Paixing		        int                     //牌型
-	maxid		        int                     //手牌最大的id
-	roundScore              int32                   //本轮得分
+	isEndPlaying		bool
+	needDrop		bool
 	totalCoin	        int32                   //总金币
+	rank		        int32                   //排名
+	score		        int32                   //一轮得分
+	prize		        int32                   //获得奖励次数
 
 	playingCards 	*card.PlayingCards	//玩家手上的牌
 	niuCards         []*card.Card
@@ -35,12 +36,13 @@ func NewPlayer(id uint64) *Player {
 		position:       10,
 		isReady:        false,
 		isDadu:     	false,
+		isEndPlaying:   false,
+		needDrop:     	false,
 
-		isScramble:     false,
-		maxid:   1,
-		roundScore:     0,
+		rank:     0,
+		score:     0,
+		prize:     0,
 		totalCoin:     0,
-		Paixing:   	card.DouniuType_Meiniu,
 		playingCards:	card.NewPlayingCards(),
 		observers:	make([]PlayerObserver, 0),
 		niuCards:       make([]*card.Card, 0),
@@ -69,12 +71,36 @@ func (player *Player) AddTotalCoin(add int32) int32 {
 	return player.totalCoin
 }
 
-func (player *Player) GetRoundScore() int32 {
-	return player.roundScore
+func (player *Player) GetScore() int32 {
+	return player.score
 }
 
-func (player *Player) SetRoundScore(round_score int32) {
-	player.roundScore = round_score
+func (player *Player) AddScore(score int32) {
+	player.score += score
+}
+
+func (player *Player) ResetScore() {
+	player.score = 0
+}
+
+func (player *Player) GetRank() int32 {
+	return player.rank
+}
+
+func (player *Player) SetRank(rank int32) {
+	player.rank = rank
+}
+
+func (player *Player) GetPrize() int32 {
+	return player.score
+}
+
+func (player *Player) AddPrize(prize int32) {
+	player.prize += prize
+}
+
+func (player *Player) ResetPrize() {
+	player.prize = 0
 }
 
 func (player *Player) GetIsDadu() bool {
@@ -85,28 +111,20 @@ func (player *Player) SetIsDadu(is_dadu bool) {
 	player.isDadu = is_dadu
 }
 
-func (player *Player) GetIsScramble() bool {
-	return player.isScramble
+func (player *Player) GetIsEndPlaying() bool {
+	return player.isEndPlaying
 }
 
-func (player *Player) SetIsScramble(is_scramble bool) {
-	player.isScramble = is_scramble
+func (player *Player) SetIsIsEndPlaying(is_end_playing bool) {
+	player.isEndPlaying = is_end_playing
 }
 
-func (player *Player) GetPaixing() int {
-	return player.Paixing
+func (player *Player) GetNeedDrop() bool {
+	return player.needDrop
 }
 
-func (player *Player) SetPaixing(paixing int) {
-	player.Paixing = paixing
-}
-
-func (player *Player) GetMaxid() int {
-	return player.maxid
-}
-
-func (player *Player) SetMaxid(maxid int) {
-	player.maxid = maxid
+func (player *Player) SetNeedDrop(need_drop bool) {
+	player.needDrop = need_drop
 }
 
 func (player *Player) GetNiuCards() []*card.Card {
@@ -121,7 +139,12 @@ func (player *Player) Reset() {
 	//log.Debug(time.Now().Unix(), player,"Player.Reset")
 	player.playingCards.Reset()
 	player.SetIsReady(false)
-	player.SetIsScramble(false)
+	player.SetIsDadu(false)
+	player.SetIsIsEndPlaying(false)
+	player.SetNeedDrop(false)
+	player.SetRank(0)
+	player.ResetPrize()
+	player.ResetScore()
 }
 
 func (player *Player) AddObserver(ob PlayerObserver) {
@@ -182,23 +205,6 @@ func (player *Player) OperateDoReady() bool{
 	return player.waitResult(op.ResultCh)
 }
 
-func (player *Player) OperateScramble(scramble_multiple int32) bool{
-	log.Debug(time.Now().Unix(), player, "OperateScramble", player.room)
-	if player.room == nil || player.GetIsScramble(){
-		return false
-	}
-
-	if scramble_multiple < 0 || scramble_multiple > 4 {
-		log.Error("Player is not playing", player)
-		return false
-	}
-
-	data := &OperateScrambleData{ScrambleMultiple:scramble_multiple}
-	op := NewOperateScramble(player, data)
-	player.room.PlayerOperate(op)
-	return player.waitResult(op.ResultCh)
-}
-
 func (player *Player) GetIsReady() bool {
 	return player.isReady
 }
@@ -245,11 +251,6 @@ func (player *Player) LeaveRoom() {
 func (player *Player) Dadu(is_dadu bool) {
 	//log.Debug(time.Now().Unix(), player, "Dadu", player.room)
 	player.SetIsDadu(is_dadu)
-}
-
-func (player *Player) Scramble(multiple int32) {
-	log.Debug(time.Now().Unix(), player, "Scramble", player.room)
-	player.SetIsScramble(true)
 }
 
 func (player *Player) String() string{
@@ -350,11 +351,13 @@ func (player *Player) onSwithOperator(op *Operate) {
 }
 
 func (player *Player) OnDrop(op *Operate) {
-	if _, ok := op.Data.(*OperateDropData); ok {
+	if drop_data, ok := op.Data.(*OperateDropData); ok {
 		/*if op.Operator == player {
 			return
 		}*/
-		msgData := &DropMsgData{}
+		msgData := &DropMsgData{
+			WhatGroup:drop_data.whatGroup,
+		}
 		player.notifyObserver(NewDropMsg(op.Operator, msgData))
 	}
 }
@@ -410,4 +413,18 @@ func (player *Player) OnEndPlayGame() {
 	player.Reset()
 	data := &GameEndMsgData{}
 	player.notifyObserver(NewGameEndMsg(player, data))
+}
+
+func (player *Player) GetTailCard(num int) []*card.Card {
+	//log.Debug(time.Now().Unix(), player, "GetTailCard", num)
+	return player.playingCards.Tail(num)
+}
+
+func (player *Player) GetLeftCardNum() (int) {
+	return player.playingCards.CardsInHand.Len()
+}
+
+func (player *Player) Drop(cards []*card.Card) bool {
+	log.Debug(time.Now().Unix(), player, "Drop card :", cards)
+	return player.playingCards.DropCards(cards)
 }

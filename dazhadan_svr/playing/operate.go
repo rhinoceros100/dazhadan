@@ -2,6 +2,7 @@ package playing
 
 import (
 	"fmt"
+	"dazhadan/dazhadan_svr/card"
 )
 
 type OperateType int
@@ -13,8 +14,6 @@ const (
 
 	OperateConfirmDadu
 	OperateSwitchOperator
-
-	OperateScramble
 	OperateDrop
 	OperateGuo
 )
@@ -31,8 +30,6 @@ func (operateType OperateType) String() string {
 		return "OperateConfirmDadu"
 	case OperateSwitchOperator:
 		return "OperateSwitchOperator"
-	case OperateScramble:
-		return "OperateScramble"
 	case OperateDrop:
 		return "OperateDrop"
 	case OperateGuo:
@@ -82,13 +79,6 @@ func NewOperateLeaveRoom(operator *Player, data *OperateLeaveRoomData) *Operate 
 	return newOperate(OperateLeaveRoom, operator, data)
 }
 
-type OperateScrambleData struct {
-	ScrambleMultiple int32
-}
-func NewOperateScramble(operator *Player, data *OperateScrambleData) *Operate {
-	return newOperate(OperateScramble, operator, data)
-}
-
 type OperateConfirmDaduData struct {
 	IsDadu bool
 }
@@ -96,12 +86,16 @@ func NewOperateConfirmDadu(operator *Player, data *OperateConfirmDaduData) *Oper
 	return newOperate(OperateConfirmDadu, operator, data)
 }
 
-type OperateSwitchOperatorData struct {}
+type OperateSwitchOperatorData struct {
+	MustDrop bool
+}
 func NewSwitchOperator(operator *Player, data *OperateSwitchOperatorData) *Operate {
 	return newOperate(OperateSwitchOperator, operator, data)
 }
 
-type OperateDropData struct {}
+type OperateDropData struct {
+	whatGroup []*card.Card
+}
 func NewOperateDrop(operator *Player, data *OperateDropData) *Operate {
 	return newOperate(OperateDrop, operator, data)
 }

@@ -4,6 +4,7 @@ type Card struct {
 	CardType int 	//牌类型
 	CardNo   int 	//牌编号
 	CardId   int    //牌唯一标识符
+	Weight   int    //权重
 }
 
 //是否同一类型的牌
@@ -56,10 +57,20 @@ func (card *Card) MakeKey() int64 {
 	return ret
 }
 
-func (card *Card) MakeID(num int) int {
-	var ret int
-	ret = card.CardNo * 100 + card.CardType * 10 + num
-	return ret
+//3-K的权重分别为3-13，A为14,2为15，小王16，大王17
+func (card *Card) MakeIDWeight(num int) {
+	card.CardId = card.CardNo * 100 + card.CardType * 10 + num
+	if card.CardNo < 3{
+		card.Weight = card.CardNo + 13
+	}else if card.CardNo >= 3 && card.CardNo <= 13 {
+		card.Weight = card.CardNo
+	}else {
+		if card.CardType == CardType_BlackJoker {
+			card.Weight = 16
+		}else{
+			card.Weight = 17
+		}
+	}
 }
 
 
@@ -106,41 +117,9 @@ func (card *Card) String() string {
 	return name
 }
 
-func (card *Card) GetScore() int{
-	switch card.CardNo {
-	case 1:
-		return 1
-	case 2:
-		return 2
-	case 3:
-		return 3
-	case 4:
-		return 4
-	case 5:
-		return 5
-	case 6:
-		return 6
-	case 7:
-		return 7
-	case 8:
-		return 8
-	case 9:
-		return 9
-	case 10:
-		return 10
-	case 11:
-		return 10
-	case 12:
-		return 10
-	case 13:
-		return 10
-	}
-	return 1
-}
-
 func cardNameMap() map[int]map[int]string {
 	return map[int]map[int]string{
-		CardType_Fangpian: {
+		CardType_Diamond: {
 			1: 		"A方片",
 			2:  		"2方片",
 			3:   		"3方片",
@@ -155,7 +134,7 @@ func cardNameMap() map[int]map[int]string {
 			12:		"Q方片",
 			13:		"K方片",
 		},
-		CardType_Meihua: {
+		CardType_Club: {
 			1: 		"A梅花",
 			2:  		"2梅花",
 			3:   		"3梅花",
@@ -170,7 +149,7 @@ func cardNameMap() map[int]map[int]string {
 			12:		"Q梅花",
 			13:		"K梅花",
 		},
-		CardType_Hongtao: {
+		CardType_Heart: {
 			1: 		"A红桃",
 			2:  		"2红桃",
 			3:   		"3红桃",
@@ -185,7 +164,7 @@ func cardNameMap() map[int]map[int]string {
 			12:		"Q红桃",
 			13:		"K红桃",
 		},
-		CardType_Heitao: {
+		CardType_Spade: {
 			1: 		"A黑桃",
 			2:  		"2黑桃",
 			3:   		"3黑桃",
@@ -200,10 +179,10 @@ func cardNameMap() map[int]map[int]string {
 			12:		"Q黑桃",
 			13:		"K黑桃",
 		},
-		CardType_Xiaowang: {
+		CardType_BlackJoker: {
 			14:		"小王",
 		},
-		CardType_Dawang: {
+		CardType_RedJoker: {
 			14:		"大王",
 		},
 	}
