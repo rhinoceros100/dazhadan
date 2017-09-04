@@ -9,6 +9,7 @@ import (
 	"dazhadan/dazhadan_svr/playing"
 	"dazhadan/dazhadan_svr/util"
 	"dazhadan/dazhadan_svr/log"
+	"dazhadan/dazhadan_svr/card"
 )
 
 func help() {
@@ -19,6 +20,9 @@ func help() {
 	log.Debug(playing.OperateEnterRoom, int(playing.OperateEnterRoom))
 	log.Debug(playing.OperateReadyRoom, int(playing.OperateReadyRoom))
 	log.Debug(playing.OperateLeaveRoom, int(playing.OperateLeaveRoom))
+	log.Debug(playing.OperateConfirmDadu, int(playing.OperateConfirmDadu), "0(false)/1(true)")
+	log.Debug(playing.OperateDrop, int(playing.OperateDrop), "1(type) 7(cardno)")
+	log.Debug(playing.OperateGuo, int(playing.OperateGuo))
 	log.Debug("-----------------help---------------------")
 }
 
@@ -71,12 +75,12 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 			log.Debug(log_time, player, "OnMsg MsgSwitchOperator", msg.Owner)
 		}
 	case playing.MsgDrop:
-		if drop_data, ok := msg.Data.(*playing.DropMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "cards:", drop_data.WhatGroup)
+		if _, ok := msg.Data.(*playing.DropMsgData); ok {
+			//log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "cards:", drop_data.WhatGroup)
 		}
 	case playing.MsgGuo:
 		if _, ok := msg.Data.(*playing.GuoMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgGuo", msg.Owner)
+			//log.Debug(log_time, player, "OnMsg MsgGuo", msg.Owner)
 		}
 	case playing.MsgJiesuan:
 		if jiesuan_data, ok := msg.Data.(*playing.JiesuanMsgData); ok {
@@ -98,9 +102,9 @@ func main() {
 	room.Start()
 
 	robots := []*playing.Player{
+		playing.NewPlayer(0),
 		playing.NewPlayer(1),
 		playing.NewPlayer(2),
-		playing.NewPlayer(3),
 	}
 
 	for _, robot := range robots {
@@ -108,7 +112,7 @@ func main() {
 		robot.AddObserver(&PlayerObserver{})
 	}
 
-	curPlayer := playing.NewPlayer(4)
+	curPlayer := playing.NewPlayer(3)
 	curPlayer.AddObserver(&PlayerObserver{})
 
 	go func() {
@@ -118,7 +122,6 @@ func main() {
 		robots[1].OperateDoReady()
 		time.Sleep(time.Second * 2)
 		robots[2].OperateDoReady()
-		//curPlayer.OperateDoReady()
 	}()
 
 	reader := bufio.NewReader(os.Stdin)
@@ -141,6 +144,31 @@ func main() {
 			curPlayer.OperateDoReady()
 		case playing.OperateLeaveRoom:
 			curPlayer.OperateLeaveRoom()
+		case playing.OperateConfirmDadu:
+			if len(splits) > 1 {
+				num, _ := strconv.Atoi(splits[1])
+				is_dadu := false
+				if 1 == num {
+					is_dadu = true
+				}
+				curPlayer.OperateConfirmDadu(is_dadu)
+			}else {
+				help()
+			}
+		case playing.OperateDrop:
+			if len(splits) > 2 {
+				card1 := &card.Card{}
+				card1.CardType, _ = strconv.Atoi(splits[1])
+				card1.CardNo, _ = strconv.Atoi(splits[2])
+				card1.MakeIDWeight(1)
+				cards := make([]*card.Card, 0)
+				cards = append(cards, card1)
+				curPlayer.OperateDropCard(cards)
+			}else {
+				help()
+			}
+		case playing.OperateGuo:
+			curPlayer.OperateGuo()
 		}
 	}
 }

@@ -115,7 +115,7 @@ func (player *Player) GetIsEndPlaying() bool {
 	return player.isEndPlaying
 }
 
-func (player *Player) SetIsIsEndPlaying(is_end_playing bool) {
+func (player *Player) SetIsEndPlaying(is_end_playing bool) {
 	player.isEndPlaying = is_end_playing
 }
 
@@ -140,7 +140,7 @@ func (player *Player) Reset() {
 	player.playingCards.Reset()
 	player.SetIsReady(false)
 	player.SetIsDadu(false)
-	player.SetIsIsEndPlaying(false)
+	player.SetIsEndPlaying(false)
 	player.SetNeedDrop(false)
 	player.SetRank(0)
 	player.ResetPrize()
@@ -201,6 +201,32 @@ func (player *Player) OperateDoReady() bool{
 
 	data := &OperateReadyRoomData{}
 	op := NewOperateReadyRoom(player, data)
+	player.room.PlayerOperate(op)
+	return player.waitResult(op.ResultCh)
+}
+
+func (player *Player) OperateConfirmDadu(is_dadu bool) bool {
+	log.Debug(player, "OperateConfirmDadu:", is_dadu)
+	data := &OperateConfirmDaduData{is_dadu}
+	op := NewOperateConfirmDadu(player, data)
+	player.room.PlayerOperate(op)
+	return player.waitResult(op.ResultCh)
+}
+
+func (player *Player) OperateDropCard(cards []*card.Card) bool {
+	log.Debug(player, "OperateDrop cards :", cards)
+	data := &OperateDropData{
+		whatGroup: cards,
+	}
+	op := NewOperateDrop(player, data)
+	player.room.PlayerOperate(op)
+	return player.waitResult(op.ResultCh)
+}
+
+func (player *Player) OperateGuo() bool {
+	log.Debug(player, "OperateGuo")
+	data := &OperateGuoData{}
+	op := NewOperateGuo(player, data)
 	player.room.PlayerOperate(op)
 	return player.waitResult(op.ResultCh)
 }

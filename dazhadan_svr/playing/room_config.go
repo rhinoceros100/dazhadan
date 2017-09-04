@@ -46,7 +46,7 @@ func (config *RoomConfig) Init(score_type, prize_type, init_type int32) {
 	config.InitType = init_type
 	config.NeedPlayerNum = 4
 	config.MaxPlayGameCnt = 3
-	config.RandomDropNum = 3
+	config.RandomDropNum = 10
 
 	config.WaitPlayerEnterRoomTimeout = 300
 	config.WaitPlayerOperateTimeout = 300

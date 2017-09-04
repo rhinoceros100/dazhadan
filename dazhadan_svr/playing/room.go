@@ -54,8 +54,8 @@ type Room struct {
 	opMaster		*Player					//当前出过牌的玩家
 	waitOperator		*Player					//等待出牌的玩家
 	masterPlayer 		*Player					//庄
-	assistPlayer 		*Player					//和庄一家
-	daduPlayer 		*Player					//打独的玩家
+	nextOpMaster		*Player					//下一个出牌玩家
+	assistPlayer 		*Player					//和庄一
 	isDadu			bool					//是否打独
 	fanpai			*card.Card				//翻出的牌
 	tableScore		int32					//现在桌面上未被赢取的分数
@@ -65,6 +65,7 @@ type Room struct {
 	daduCh		[]chan *Operate				//打独
 	dropCardCh	[]chan *Operate				//出牌
 	guoCh		[]chan *Operate				//过牌
+	roomReadyCh	[]chan *Operate
 
 	stop bool
 }
@@ -78,16 +79,23 @@ func NewRoom(id uint64, config *RoomConfig) *Room {
 		observers:		make([]RoomObserver, 0),
 		roomStatus:		RoomStatusWaitAllPlayerEnter,
 		playedGameCnt:	0,
+		opMaster:		 nil,
+		waitOperator:		 nil,
+		masterPlayer:		 nil,
+		nextOpMaster:		 nil,
+		assistPlayer:		 nil,
 
 		roomOperateCh: make(chan *Operate, 1024),
 		daduCh: make([]chan *Operate, config.NeedPlayerNum),
 		dropCardCh: make([]chan *Operate, config.NeedPlayerNum),
 		guoCh: make([]chan *Operate, config.NeedPlayerNum),
+		roomReadyCh: make([]chan *Operate, config.NeedPlayerNum),
 	}
 	for idx := 0; idx < int(config.NeedPlayerNum); idx ++ {
 		room.daduCh[idx] = make(chan *Operate, 1)
 		room.dropCardCh[idx] = make(chan *Operate, 1)
 		room.guoCh[idx] = make(chan *Operate, 1)
+		room.roomReadyCh[idx] = make(chan *Operate, 1)
 	}
 	return room
 }
@@ -104,7 +112,11 @@ func (room *Room) PlayerOperate(op *Operate) {
 	case OperateEnterRoom, OperateLeaveRoom:
 		room.roomOperateCh <- op
 	case OperateReadyRoom:
-		room.roomOperateCh <- op
+		if room.roomStatus == RoomStatusWaitAllPlayerEnter {
+			room.roomOperateCh <- op
+		}else {
+			room.roomReadyCh[pos] <- op
+		}
 	case OperateConfirmDadu:
 		room.daduCh[pos] <- op
 	case OperateDrop:
@@ -227,11 +239,12 @@ func (room *Room) waitDropCard(player *Player, mustDrop bool) bool{
 	for{
 		select {
 		case <- time.After(time.Second * room.config.WaitDropSec):
-			random := util.RandomN(2)
+			random := util.RandomN(4)
 			log.Debug(time.Now().Unix(), player, "waitDropCard do PlayerOperate, random:", random)
 
 			if mustDrop || random == 0 {
 			//if mustDrop {
+				room.nextOpMaster = nil
 				num := room.getRandomDropNum(player)
 				tailCards := player.GetTailCard(num)
 				dropCards := card.CopyCards(tailCards)
@@ -247,6 +260,7 @@ func (room *Room) waitDropCard(player *Player, mustDrop bool) bool{
 			}
 		case op := <-room.dropCardCh[player.position]:
 			log.Debug(time.Now().Unix(), player, "Player.waitDropCard:", op.Data)
+			room.nextOpMaster = nil
 			room.dealPlayerOperate(op)
 			return true
 		case op := <-room.guoCh[player.position] :
@@ -279,7 +293,6 @@ func (room *Room) waitInitPlayerReady(player *Player) {
 	}
 }
 
-//TODO 等待开始时有玩家需要等待两次的bug
 func (room *Room) waitPlayerReady(player *Player) bool {
 	log.Debug(time.Now().Unix(), player, "waitPlayerReady")
 	for{
@@ -291,7 +304,7 @@ func (room *Room) waitPlayerReady(player *Player) bool {
 			log.Debug(time.Now().Unix(), player, "waitPlayerReady do PlayerOperate")
 			room.PlayerOperate(op)
 			continue
-		case op := <-room.roomOperateCh:
+		case op := <-room.roomReadyCh[player.GetPosition()]:
 			log.Debug(time.Now().Unix(), player, "Player.waitPlayerReady")
 			room.dealPlayerOperate(op)
 			return true
@@ -313,9 +326,34 @@ func (room *Room) waitAllPlayerReady() {
 	for _, player := range room.players {
 		go room.waitPlayerReady(player)
 	}
-	breakTimerTime := time.Duration(0)
-	timeout := time.Duration(room.config.WaitPlayerEnterRoomTimeout) * time.Second
-	for {
+	timeout := int64(room.config.WaitPlayerOperateTimeout)
+	start_time := time.Now().Unix()
+	for  {
+		//房间结束
+		if room.roomStatus == RoomStatusRoomEnd {
+			//如果此时房间已经结束，则直接返回，房间结束
+			log.Debug(time.Now().Unix(), "waitAllPlayerReady room.roomStatus == RoomStatusRoomEnd")
+			return
+		}
+
+		//所有人都已准备
+		if room.isAllPlayerReady() {
+			room.switchStatus(RoomStatusGameStart)
+			return
+		}
+
+		//超时结束
+		time_now := time.Now().Unix()
+		if start_time + timeout < time_now {
+			log.Debug(time.Now().Unix(), room, "waitAllPlayerReady timeout", timeout)
+			room.switchStatus(RoomStatusRoomEnd) //超时发现没有足够的玩家都进入房间了，则结束
+			return
+		}
+
+		time.Sleep(time.Millisecond * 2)
+	}
+
+	/*for {
 		timer := timeout - breakTimerTime
 		select {
 		case <-time.After(timer):
@@ -337,7 +375,7 @@ func (room *Room) waitAllPlayerReady() {
 				}
 			}
 		}
-	}
+	}*/
 }
 
 func (room *Room) gameStart() {
@@ -379,7 +417,7 @@ func (room *Room) gameStart() {
 		is_dadu = room.waitPlayerDadu(tmpPlayer)
 		if is_dadu {
 			room.isDadu = true
-			room.daduPlayer = tmpPlayer
+			room.masterPlayer = tmpPlayer
 			break
 		}
 
@@ -409,35 +447,64 @@ func (room *Room) gameStart() {
 	}
 }
 
-//TODO 玩家打完牌之后切换另外一个玩家逻辑
 func (room *Room) playGame() {
-	//log.Debug(time.Now().Unix(), room, "Room.playGame", room.playedGameCnt)
+	log.Debug(time.Now().Unix(), room, "Room.playGame", room.playedGameCnt)
 
-	//room.switchOperator(room.masterPlayer, true)
-	if room.opMaster.GetNeedDrop() {
-		log.Debug("wait drop:", room.opMaster)
-		room.waitDropCard(room.opMaster, true)
-	}
-	//room.opMaster.SetNeedDrop(false)
-	tmpPlayer := room.opMaster
 	is_round_end := false
+	if room.opMaster.GetNeedDrop() {
+		//log.Debug("wait drop1:", room.opMaster)
+		room.waitOperator = room.opMaster
+		room.waitDropCard(room.opMaster, true)
+
+		//查看玩家是否出完手牌
+		if room.isAllCardsDropped(room.opMaster) {
+			room.opMaster.SetIsEndPlaying(true)
+			is_round_end = room.isRoundEnd(room.opMaster)
+			if !is_round_end {
+				room.nextOpMaster = room.oppositePlayer(room.opMaster)
+			}
+		}else {
+			room.opMaster.SetNeedDrop(false)
+		}
+	}
+
+	if is_round_end {
+		room.switchStatus(RoomStatusEndPlayGame)
+		//通知开始出牌
+		jiesuan_data := &JiesuanMsgData{}
+		msg := NewJiesuanMsg(nil, jiesuan_data)
+		for _, player := range room.players {
+			player.OnJiesuan(msg)
+		}
+		return
+	}
+
+	tmpPlayer := room.opMaster
 	for {
 		tmpPlayer = room.nextPlayer(tmpPlayer)
-		if tmpPlayer == room.opMaster{
-			//room.opMaster.SetNeedDrop(true)
+		if is_round_end || tmpPlayer == room.opMaster{
+			if nil != room.nextOpMaster {
+				room.switchOperator(room.nextOpMaster, true)
+				room.nextOpMaster = nil
+			}else {
+				room.opMaster.SetNeedDrop(true)
+			}
 			break
 		}
 
 		room.waitOperator = tmpPlayer
+		//log.Debug("wait drop2:", tmpPlayer)
 		is_drop := room.waitDropCard(tmpPlayer, false)
 		if is_drop {
 			//查看玩家是否出完手牌
 			if room.isAllCardsDropped(tmpPlayer) {
-				tmpPlayer.SetIsIsEndPlaying(true)
+				tmpPlayer.SetIsEndPlaying(true)
 				is_round_end = room.isRoundEnd(tmpPlayer)
+				if !is_round_end {
+					room.nextOpMaster = room.oppositePlayer(tmpPlayer)
+				}
 			}
 
-			//room.curOperator = tmpPlayer
 			room.switchOperator(tmpPlayer, false)
 			break
 		}
@@ -619,26 +686,53 @@ func (room *Room) nextPlayer(player *Player) *Player {
 	pos := player.GetPosition()
 
 	need_player_num := int32(room.config.NeedPlayerNum)
-	for next_pos := pos + 1; next_pos < need_player_num; next_pos++ {
+	for i := int32(1); i <= need_player_num; i++ {
+		next_pos := (pos + i) % need_player_num
 		for _, room_player := range room.players {
-			if room_player.GetPosition() == next_pos && !room_player.GetIsEndPlaying(){
-				//log.Debug(time.Now().Unix(), "nextPlayer", "pos:", pos, "next_pos:", next_pos)
-				return room_player
+			if room_player.GetPosition() == next_pos{
+				if room_player == room.opMaster {
+					//log.Debug(time.Now().Unix(), "nextPlayer", "pos:", pos, "next_pos:", next_pos)
+					return room_player
+				}
+				if !room_player.GetIsEndPlaying() {
+					//log.Debug(time.Now().Unix(), "nextPlayer", "pos:", pos, "next_pos:", next_pos)
+					return room_player
+				}
 			}
 		}
 	}
 
-	for next_pos := int32(0); next_pos < pos; next_pos++ {
+	/*for next_pos := int32(0); next_pos < pos; next_pos++ {
 		for _, room_player := range room.players {
-			if room_player.GetPosition() == next_pos && !room_player.GetIsEndPlaying(){
-				//log.Debug(time.Now().Unix(), "nextPlayer", "pos:", pos, "next_pos:", next_pos)
-				return room_player
+			if room_player.GetPosition() == next_pos{
+				if room_player == room.masterPlayer {
+					return room_player
+				}
+				if !room_player.GetIsEndPlaying() {
+					return room_player
+				}
 			}
 		}
-	}
+	}*/
 
 	//log.Debug(time.Now().Unix(), "nextPlayer", "pos:", pos, "next_pos:", 0)
 	return room.players[0]
+}
+
+//取指定玩家的对家
+func (room *Room) oppositePlayer(player *Player) *Player {
+	if nil == player{
+		return nil
+	}
+
+	pos := player.GetPosition()
+	opp_pos := (pos + 2) % int32(room.config.NeedPlayerNum)
+	for _, room_player := range room.players {
+		if room_player.GetPosition() == opp_pos && !room_player.GetIsEndPlaying(){
+			return room_player
+		}
+	}
+	return nil
 }
 
 func (room *Room) isAllPlayerReady() bool{
@@ -849,8 +943,8 @@ func (room *Room) Reset()  {
 	room.opMaster = nil
 	room.waitOperator = nil
 	room.masterPlayer = nil
+	room.nextOpMaster = nil
 	room.assistPlayer = nil
-	room.daduPlayer = nil
 	room.isDadu = false
 	room.fanpai = nil
 	room.tableScore = 0
@@ -879,6 +973,12 @@ func (room *Room) clearChannel() {
 
 		select {
 		case op := <-room.guoCh[idx]:
+			op.ResultCh <- false
+		default:
+		}
+
+		select {
+		case op := <-room.roomReadyCh[idx]:
 			op.ResultCh <- false
 		default:
 		}

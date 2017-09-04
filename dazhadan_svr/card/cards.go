@@ -184,7 +184,7 @@ func (cards *Cards) PopFront() *Card {
 func (cards *Cards) Tail(num int) []*Card {
 	cards_len := cards.Len()
 	if cards_len < num {
-		return nil
+		return cards.Data[0:]
 	}
 	return cards.Data[cards_len - num:]
 }
