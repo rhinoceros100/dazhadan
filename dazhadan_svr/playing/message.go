@@ -8,15 +8,15 @@ import (
 type MsgType	int
 const  (
 	MsgGetInitCards	MsgType = iota + 1
-	MsgWaitDadu
-	MsgConfirmDadu
+	MsgWaitPlayAlone
+	MsgConfirmPlayAlone
 	MsgSwitchPosition
 	MsgStartPlay
 
 	MsgSwitchOperator
 	MsgDrop
-	MsgGuo
-	MsgJiesuan
+	MsgPass
+	MsgSummary
 
 	MsgEnterRoom
 	MsgReadyRoom
@@ -29,10 +29,10 @@ func (msgType MsgType) String() string {
 	switch msgType {
 	case MsgGetInitCards:
 		return "MsgGetInitCards"
-	case MsgWaitDadu:
-		return "MsgWaitDadu"
-	case MsgConfirmDadu:
-		return "MsgConfirmDadu"
+	case MsgWaitPlayAlone:
+		return "MsgWaitPlayAlone"
+	case MsgConfirmPlayAlone:
+		return "MsgConfirmPlayAlone"
 	case MsgSwitchPosition:
 		return "MsgSwitchPosition"
 	case MsgStartPlay:
@@ -41,10 +41,10 @@ func (msgType MsgType) String() string {
 		return "MsgSwitchOperator"
 	case MsgDrop:
 		return "MsgDrop"
-	case MsgGuo:
-		return "MsgGuo"
-	case MsgJiesuan:
-		return "MsgJiesuan"
+	case MsgPass:
+		return "MsgPass"
+	case MsgSummary:
+		return "MsgSummary"
 	case MsgEnterRoom:
 		return "MsgEnterRoom"
 	case MsgReadyRoom:
@@ -89,21 +89,21 @@ func NewGetInitCardsMsg(owner *Player, data *GetInitCardsMsgData) *Message {
 }
 
 //玩家等待打独的消息
-type WaitDaduMsgData struct {
-	WaitDaduPlayer *Player
+type WaitPlayAloneMsgData struct {
+	WaitPlayAlonePlayer *Player
 	LeftSec int32
 }
-func NewWaitDaduMsg(owner *Player, data *WaitDaduMsgData) *Message {
-	return newMsg(MsgWaitDadu, owner, data)
+func NewWaitPlayAloneMsg(owner *Player, data *WaitPlayAloneMsgData) *Message {
+	return newMsg(MsgWaitPlayAlone, owner, data)
 }
 
 //玩家确认打独的消息
-type ConfirmDaduMsgData struct {
-	IsDadu bool
-	DaduPlayer *Player
+type ConfirmPlayAloneMsgData struct {
+	IsPlayAlone bool
+	PlayAlonePlayer *Player
 }
-func NewConfirmDaduMsg(owner *Player, data *ConfirmDaduMsgData) *Message {
-	return newMsg(MsgConfirmDadu, owner, data)
+func NewConfirmPlayAloneMsg(owner *Player, data *ConfirmPlayAloneMsgData) *Message {
+	return newMsg(MsgConfirmPlayAlone, owner, data)
 }
 
 //玩家等待打独的消息
@@ -119,7 +119,7 @@ func NewSwitchPositionMsg(owner *Player, data *SwitchPositionMsgData) *Message {
 
 //开始打牌的消息
 type StartPlayMsgData struct {
-	IsDadu bool
+	IsPlayAlone bool
 	Master *Player
 	Assist *Player
 }
@@ -134,21 +134,24 @@ func NewSwitchOperatorMsg(owner *Player, data *SwitchOperatorMsgData) *Message {
 	return newMsg(MsgSwitchOperator, owner, data)
 }
 
-type PlayerJiesuanData struct {
+type PlayerSummaryData struct {
 	P *Player
 	Rank int32
 	Coin int32
 	Score int32
 	Prize int32
 	TotalCoin int32
+	PrizeCoin int32
+	IsWin bool
 }
 
 //结算消息
-type JiesuanMsgData struct {
-	Scores []*PlayerJiesuanData
+type SummaryMsgData struct {
+	Scores []*PlayerSummaryData
+	info_type int32
 }
-func NewJiesuanMsg(owner *Player, data *JiesuanMsgData) *Message {
-	return newMsg(MsgJiesuan, owner, data)
+func NewSummaryMsg(owner *Player, data *SummaryMsgData) *Message {
+	return newMsg(MsgSummary, owner, data)
 }
 
 //玩家进入房间的消息
@@ -192,13 +195,14 @@ func NewRoomClosedMsg(owner *Player, data *RoomClosedMsgData) *Message{
 //出牌的消息
 type DropMsgData struct {
 	WhatGroup []*card.Card
+	TableScore int32
 }
 func NewDropMsg(owner *Player, data *DropMsgData) *Message{
 	return newMsg(MsgDrop, owner, data)
 }
 
 //过牌的消息
-type GuoMsgData struct {}
-func NewGuoMsg(owner *Player, data *GuoMsgData) *Message{
-	return newMsg(MsgGuo, owner, data)
+type PassMsgData struct {}
+func NewPassMsg(owner *Player, data *PassMsgData) *Message{
+	return newMsg(MsgPass, owner, data)
 }

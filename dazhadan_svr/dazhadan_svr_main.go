@@ -20,12 +20,13 @@ func help() {
 	log.Debug(playing.OperateEnterRoom, int(playing.OperateEnterRoom))
 	log.Debug(playing.OperateReadyRoom, int(playing.OperateReadyRoom))
 	log.Debug(playing.OperateLeaveRoom, int(playing.OperateLeaveRoom))
-	log.Debug(playing.OperateConfirmDadu, int(playing.OperateConfirmDadu), "0(false)/1(true)")
+	log.Debug(playing.OperateConfirmPlayAlone, int(playing.OperateConfirmPlayAlone), "0(false)/1(true)")
 	log.Debug(playing.OperateDrop, int(playing.OperateDrop), "1(type) 7(cardno)")
-	log.Debug(playing.OperateGuo, int(playing.OperateGuo))
+	log.Debug(playing.OperatePass, int(playing.OperatePass))
 	log.Debug("-----------------help---------------------")
 }
 
+//TODO 总结算消息
 type PlayerObserver struct {}
 func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 	log_time := time.Now().Unix()
@@ -54,13 +55,13 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		if init_data, ok := msg.Data.(*playing.GetInitCardsMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgGetInitCards, PlayingCards:", init_data.PlayingCards)
 		}
-	case playing.MsgWaitDadu:
-		if dadu_data, ok := msg.Data.(*playing.WaitDaduMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgWaitDadu left_sec:", dadu_data.LeftSec, "wait_player", dadu_data.WaitDaduPlayer)
+	case playing.MsgWaitPlayAlone:
+		if pa_data, ok := msg.Data.(*playing.WaitPlayAloneMsgData); ok {
+			log.Debug(log_time, player, "OnMsg MsgWaitPlayAlone left_sec:", pa_data.LeftSec, "wait_player", pa_data.WaitPlayAlonePlayer)
 		}
-	case playing.MsgConfirmDadu:
-		if dadu_data, ok := msg.Data.(*playing.ConfirmDaduMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgConfirmDadu, IsDadu:", dadu_data.IsDadu, "dadu_player", dadu_data.DaduPlayer)
+	case playing.MsgConfirmPlayAlone:
+		if pa_data, ok := msg.Data.(*playing.ConfirmPlayAloneMsgData); ok {
+			log.Debug(log_time, player, "OnMsg MsgConfirmPlayAlone, IsPA:", pa_data.IsPlayAlone, "pa_player", pa_data.PlayAlonePlayer)
 		}
 	case playing.MsgSwitchPosition:
 		if sw_data, ok := msg.Data.(*playing.SwitchPositionMsgData); ok {
@@ -68,24 +69,24 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		}
 	case playing.MsgStartPlay:
 		if sp_data, ok := msg.Data.(*playing.StartPlayMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgStartPlay, is_dadu:", sp_data.IsDadu, "assist:", sp_data.Assist, "master:", sp_data.Master)
+			log.Debug(log_time, player, "OnMsg MsgStartPlay, is_pa:", sp_data.IsPlayAlone, "assist:", sp_data.Assist, "master:", sp_data.Master)
 		}
 	case playing.MsgSwitchOperator:
 		if _, ok := msg.Data.(*playing.SwitchOperatorMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgSwitchOperator", msg.Owner)
 		}
 	case playing.MsgDrop:
-		if _, ok := msg.Data.(*playing.DropMsgData); ok {
-			//log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "cards:", drop_data.WhatGroup)
+		if drop_data, ok := msg.Data.(*playing.DropMsgData); ok {
+			log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "score:", drop_data.TableScore, "cards:", drop_data.WhatGroup)
 		}
-	case playing.MsgGuo:
-		if _, ok := msg.Data.(*playing.GuoMsgData); ok {
+	case playing.MsgPass:
+		if _, ok := msg.Data.(*playing.PassMsgData); ok {
 			//log.Debug(log_time, player, "OnMsg MsgGuo", msg.Owner)
 		}
-	case playing.MsgJiesuan:
-		if jiesuan_data, ok := msg.Data.(*playing.JiesuanMsgData); ok {
+	case playing.MsgSummary:
+		if summary_data, ok := msg.Data.(*playing.SummaryMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgJiesuan, jiesuan_data:")
-			for _, score_data := range jiesuan_data.Scores	{
+			for _, score_data := range summary_data.Scores	{
 				log.Debug(score_data.P, score_data.P.IsMaster(), "Score:", score_data.Rank, score_data.TotalCoin)
 			}
 		}
@@ -144,14 +145,14 @@ func main() {
 			curPlayer.OperateDoReady()
 		case playing.OperateLeaveRoom:
 			curPlayer.OperateLeaveRoom()
-		case playing.OperateConfirmDadu:
+		case playing.OperateConfirmPlayAlone:
 			if len(splits) > 1 {
 				num, _ := strconv.Atoi(splits[1])
-				is_dadu := false
+				is_play_alone := false
 				if 1 == num {
-					is_dadu = true
+					is_play_alone = true
 				}
-				curPlayer.OperateConfirmDadu(is_dadu)
+				curPlayer.OperateConfirmPlayAlone(is_play_alone)
 			}else {
 				help()
 			}
@@ -167,8 +168,8 @@ func main() {
 			}else {
 				help()
 			}
-		case playing.OperateGuo:
-			curPlayer.OperateGuo()
+		case playing.OperatePass:
+			curPlayer.OperatePass()
 		}
 	}
 }

@@ -17,10 +17,13 @@ type Player struct {
 	room			*Room			//玩家所在的房间
 	isReady			bool
 
-	isDadu			bool
+	isPlayAlone		bool
 	isEndPlaying		bool
 	needDrop		bool
+	isWin			bool
 	totalCoin	        int32                   //总金币
+	prizeCoin	        int32                   //奖金币
+	coin		        int32                   //本场金币
 	rank		        int32                   //排名
 	score		        int32                   //一轮得分
 	prize		        int32                   //获得奖励次数
@@ -35,14 +38,17 @@ func NewPlayer(id uint64) *Player {
 		id:		id,
 		position:       10,
 		isReady:        false,
-		isDadu:     	false,
+		isPlayAlone:    false,
 		isEndPlaying:   false,
 		needDrop:     	false,
+		isWin:     	false,
 
-		rank:     0,
+		rank:      0,
 		score:     0,
 		prize:     0,
-		totalCoin:     0,
+		totalCoin: 0,
+		prizeCoin: 0,
+		coin:      0,
 		playingCards:	card.NewPlayingCards(),
 		observers:	make([]PlayerObserver, 0),
 		niuCards:       make([]*card.Card, 0),
@@ -69,6 +75,38 @@ func (player *Player) GetTotalCoin() int32 {
 func (player *Player) AddTotalCoin(add int32) int32 {
 	player.totalCoin += add
 	return player.totalCoin
+}
+
+func (player *Player) GetCoin() int32 {
+	return player.coin
+}
+
+func (player *Player) AddCoin(add int32) {
+	player.coin += add
+}
+
+func (player *Player) ResetCoin() {
+	player.coin = 0
+}
+
+func (player *Player) GetPrizeCoin() int32 {
+	return player.prizeCoin
+}
+
+func (player *Player) AddPrizeCoin(add int32) {
+	player.prizeCoin += add
+}
+
+func (player *Player) ResetPrizeCoin() {
+	player.prizeCoin = 0
+}
+
+func (player *Player) GetIsWin() bool {
+	return player.isWin
+}
+
+func (player *Player) SetIsWin(is_win bool) {
+	player.isWin = is_win
 }
 
 func (player *Player) GetScore() int32 {
@@ -103,12 +141,12 @@ func (player *Player) ResetPrize() {
 	player.prize = 0
 }
 
-func (player *Player) GetIsDadu() bool {
-	return player.isDadu
+func (player *Player) GetIsPlayAlone() bool {
+	return player.isPlayAlone
 }
 
-func (player *Player) SetIsDadu(is_dadu bool) {
-	player.isDadu = is_dadu
+func (player *Player) SetIsPlayAlone(is_play_alone bool) {
+	player.isPlayAlone = is_play_alone
 }
 
 func (player *Player) GetIsEndPlaying() bool {
@@ -139,12 +177,18 @@ func (player *Player) Reset() {
 	//log.Debug(time.Now().Unix(), player,"Player.Reset")
 	player.playingCards.Reset()
 	player.SetIsReady(false)
-	player.SetIsDadu(false)
+	player.SetIsPlayAlone(false)
 	player.SetIsEndPlaying(false)
 	player.SetNeedDrop(false)
 	player.SetRank(0)
+	player.SetIsWin(false)
 	player.ResetPrize()
 	player.ResetScore()
+
+	coin := player.GetCoin()
+	player.AddTotalCoin(coin)
+	player.ResetCoin()
+	player.ResetPrizeCoin()
 }
 
 func (player *Player) AddObserver(ob PlayerObserver) {
@@ -205,10 +249,10 @@ func (player *Player) OperateDoReady() bool{
 	return player.waitResult(op.ResultCh)
 }
 
-func (player *Player) OperateConfirmDadu(is_dadu bool) bool {
-	log.Debug(player, "OperateConfirmDadu:", is_dadu)
-	data := &OperateConfirmDaduData{is_dadu}
-	op := NewOperateConfirmDadu(player, data)
+func (player *Player) OperateConfirmPlayAlone(is_play_alone bool) bool {
+	log.Debug(player, "OperateConfirmPlayAlone:", is_play_alone)
+	data := &OperateConfirmPlayAloneData{is_play_alone}
+	op := NewOperateConfirmPlayAlone(player, data)
 	player.room.PlayerOperate(op)
 	return player.waitResult(op.ResultCh)
 }
@@ -218,15 +262,23 @@ func (player *Player) OperateDropCard(cards []*card.Card) bool {
 	data := &OperateDropData{
 		whatGroup: cards,
 	}
+
+	cards_num := player.playingCards.CardsInHand.Len()
+	is_last_cards := false
+	if cards_num == len(cards) {
+		is_last_cards = true
+	}
+	drop_cards := card.CreateNewCards(cards)
+	data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards)
 	op := NewOperateDrop(player, data)
 	player.room.PlayerOperate(op)
 	return player.waitResult(op.ResultCh)
 }
 
-func (player *Player) OperateGuo() bool {
-	log.Debug(player, "OperateGuo")
-	data := &OperateGuoData{}
-	op := NewOperateGuo(player, data)
+func (player *Player) OperatePass() bool {
+	log.Debug(player, "OperatePass")
+	data := &OperatePassData{}
+	op := NewOperatePass(player, data)
 	player.room.PlayerOperate(op)
 	return player.waitResult(op.ResultCh)
 }
@@ -274,16 +326,16 @@ func (player *Player) LeaveRoom() {
 	player.position = -1
 }
 
-func (player *Player) Dadu(is_dadu bool) {
-	//log.Debug(time.Now().Unix(), player, "Dadu", player.room)
-	player.SetIsDadu(is_dadu)
+func (player *Player) PlayAlone(is_play_alone bool) {
+	//log.Debug(time.Now().Unix(), player, "PlayAlone", player.room)
+	player.SetIsPlayAlone(is_play_alone)
 }
 
 func (player *Player) String() string{
 	if player == nil {
 		return "{player=nil}"
 	}
-	return fmt.Sprintf("{player=%v, pos=%v}", player.id, player.position)
+	return fmt.Sprintf("{player=%v, pos=%v, score=%v}", player.id, player.position, player.score)
 }
 
 //玩家成功操作的通知
@@ -296,14 +348,14 @@ func (player *Player) OnPlayerSuccessOperated(op *Operate) {
 		player.onPlayerLeaveRoom(op)
 	case OperateReadyRoom:
 		player.onPlayerReadyRoom(op)
-	case OperateConfirmDadu:
-		player.OnPlayerDadu(op)
+	case OperateConfirmPlayAlone:
+		player.OnPlayerPlayAlone(op)
 	case OperateSwitchOperator:
 		player.onSwithOperator(op)
 	case OperateDrop:
 		player.OnDrop(op)
-	case OperateGuo:
-		player.OnGuo(op)
+	case OperatePass:
+		player.OnPass(op)
 	}
 }
 
@@ -354,17 +406,16 @@ func (player *Player) onPlayerLeaveRoom(op *Operate) {
 	}
 }
 
-func (player *Player) OnPlayerDadu(op *Operate) {
-	//log.Debug(time.Now().Unix(), player, "OnPlayerDadu")
-	if dadu_data, ok := op.Data.(*OperateConfirmDaduData); ok {
-		data := &ConfirmDaduMsgData{
-			IsDadu:dadu_data.IsDadu,
-			DaduPlayer:op.Operator,
+func (player *Player) OnPlayerPlayAlone(op *Operate) {
+	//log.Debug(time.Now().Unix(), player, "OnPlayerPlayAlone")
+	if pa_data, ok := op.Data.(*OperateConfirmPlayAloneData); ok {
+		data := &ConfirmPlayAloneMsgData{
+			IsPlayAlone:pa_data.IsPlayAlone,
+			PlayAlonePlayer:op.Operator,
 		}
-		player.notifyObserver(NewConfirmDaduMsg(player, data))
+		player.notifyObserver(NewConfirmPlayAloneMsg(player, data))
 	}
 }
-
 
 func (player *Player) onSwithOperator(op *Operate) {
 	if _, ok := op.Data.(*OperateSwitchOperatorData); ok {
@@ -383,22 +434,23 @@ func (player *Player) OnDrop(op *Operate) {
 		}*/
 		msgData := &DropMsgData{
 			WhatGroup:drop_data.whatGroup,
+			TableScore:player.room.GetTableScore(),
 		}
 		player.notifyObserver(NewDropMsg(op.Operator, msgData))
 	}
 }
 
-func (player *Player) OnGuo(op *Operate) {
-	if _, ok := op.Data.(*OperateGuoData); ok {
+func (player *Player) OnPass(op *Operate) {
+	if _, ok := op.Data.(*OperatePassData); ok {
 		/*if op.Operator == player {
 			return
 		}*/
-		msgData := &GuoMsgData{}
-		player.notifyObserver(NewGuoMsg(op.Operator, msgData))
+		msgData := &PassMsgData{}
+		player.notifyObserver(NewPassMsg(op.Operator, msgData))
 	}
 }
 
-func (player *Player) OnWaitWaitDadu(msg *Message) {
+func (player *Player) OnWaitPlayAlone(msg *Message) {
 	player.notifyObserver(msg)
 }
 
@@ -410,8 +462,8 @@ func (player *Player) OnStartPlay(msg *Message) {
 	player.notifyObserver(msg)
 }
 
-func (player *Player) OnJiesuan(msg *Message) {
-	//log.Debug(time.Now().Unix(), player, "OnJiesuan")
+func (player *Player) OnSummary(msg *Message) {
+	//log.Debug(time.Now().Unix(), player, "OnSummary")
 
 	player.notifyObserver(msg)
 }

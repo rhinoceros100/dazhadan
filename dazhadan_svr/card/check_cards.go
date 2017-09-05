@@ -1,6 +1,9 @@
 package card
 
-func GetCardsType(drop_cards []*Card, is_last_cards bool) (cards_type int, plane_num int, weight int) {
+func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_num int, weight int) {
+	the_cards.Sort()
+	the_cards.Sort()
+	drop_cards := the_cards.GetData()
 	cards_type = CardsType_NO
 	plane_num = 0
 	weight = 0
@@ -15,25 +18,292 @@ func GetCardsType(drop_cards []*Card, is_last_cards bool) (cards_type int, plane
 		return
 	}
 
-	return
+	most, sames := GetSameCardsNum(drop_cards)
+	if cards_len == 2 {
+		if most == 2 {
+			return CardsType_PAIR, plane_num, drop_cards[0].Weight
+		}
+		return
+	}
+	//单牌和双牌需要区分大小王的权重，其他不需要
+	weight = GetStraightWeight(sames)
+	if cards_len == 3 {
+		if most == 3 {
+			if is_last_cards && drop_cards[0].CardNo != 14{
+				return CardsType_32, plane_num, weight
+			}else {
+				return CardsType_NO, plane_num, weight
+			}
+		}
+		_, cards_type := Is510K(drop_cards)
+		return cards_type, plane_num, weight
+	}
+	if cards_len == 4 {
+		//王炸或者四炸
+		if most == 4 {
+			if weight == 16 {
+				cards_type = CardsType_JOKER
+			}else if weight == 15 {
+				cards_type = CardsType_BOMB5
+				weight = 2
+			}else {
+				cards_type = CardsType_BOMB4
+			}
+			return cards_type, plane_num, weight
+		}
+		//判断是否为三带二
+		if most == 3 {
+			if is_last_cards {
+				return CardsType_32, plane_num, weight
+			}
+		}
+		return CardsType_NO, plane_num, weight
+	}
+
+	if cards_len>= 5 && cards_len <= 8 {
+		//炸弹
+		if most == cards_len {
+			switch most {
+			case 5:
+				return CardsType_BOMB5, plane_num, weight
+			case 6:
+				return CardsType_BOMB6, plane_num, weight
+			case 7:
+				return CardsType_BOMB7, plane_num, weight
+			case 8:
+				return CardsType_BOMB8, plane_num, weight
+			}
+		}
+
+		//判断m带m-1
+		if most >= 4 && most <= 7 {
+			if is_last_cards{
+				switch most {
+				case 7:
+					cards_type = CardsType_76
+				case 6:
+					cards_type = CardsType_65
+				case 5:
+					cards_type = CardsType_54
+				case 4:
+					cards_type = CardsType_43
+				}
+			}
+			if most == 4 && cards_len == 7 {
+				cards_type = CardsType_43
+			}
+			return
+		}
+		if most == 3 {
+			if cards_len == 5 {
+				cards_type = CardsType_32
+				return
+			}
+			if len(sames) == 2 {
+				if is_last_cards {
+					if IsStraight(sames) {
+						plane_num = 2
+						cards_type = CardsType_PLANE32
+					}
+				}
+			}
+			return
+		}
+		if most == 2 {
+			same_len := len(sames)
+			/*println("same_len:", same_len)
+			println("cards_len:", cards_len)
+			for _, same := range sames {
+				println(same)
+			}*/
+			if cards_len == same_len * 2 {
+				if IsStraight(sames) {
+					plane_num = same_len
+					cards_type = CardsType_PAIRS
+				}
+			}
+			return
+		}
+		if IsStraight(sames) {
+			plane_num = cards_len
+			cards_type = CardsType_STAIGHT
+		}
+		return
+	}
+
+	if cards_len > 8 {
+		same_len := len(sames)
+		if most >= 3 && most <= 8 {
+			take := 2 * most - 1
+			if (cards_len == take) || (cards_len < take && is_last_cards) {
+				switch most {
+				case 8:
+					cards_type = CardsType_87
+				case 7:
+					cards_type = CardsType_76
+				case 6:
+					cards_type = CardsType_65
+				case 5:
+					cards_type = CardsType_54
+				case 4:
+					cards_type = CardsType_43
+				case 3:
+					cards_type = CardsType_32
+				}
+			}
+			if (cards_len == take * same_len) || (cards_len < take * same_len && is_last_cards) {
+				if IsStraight(sames) {
+					plane_num = same_len
+					switch most {
+					case 8:
+						cards_type = CardsType_PLANE87
+					case 7:
+						cards_type = CardsType_PLANE76
+					case 6:
+						cards_type = CardsType_PLANE65
+					case 5:
+						cards_type = CardsType_PLANE54
+					case 4:
+						cards_type = CardsType_PLANE43
+					case 3:
+						cards_type = CardsType_PLANE32
+					}
+				}
+			}
+			return
+		}
+
+		if most == 2 {
+			if cards_len == same_len * 2 {
+				if IsStraight(sames) {
+					plane_num = same_len
+					cards_type = CardsType_PAIRS
+				}
+			}
+			return
+		}
+		if IsStraight(sames) {
+			plane_num = cards_len
+			cards_type = CardsType_STAIGHT
+		}
+		return
+	}
+
+	return CardsType_NO, plane_num, weight
 }
 
-//获取一组牌中数字相同的牌的数量
-func GetSameCardsNum(drop_cards []*Card) (max_same_card int, same_card_nums []int) {
+//获取一组牌中数量最多的数字相同的牌的数量
+func GetSameCardsNum(drop_cards []*Card) (most int, same_card_nums []int) {
 	arr := [15]int{}
 	for _, drop_card := range drop_cards {
 		arr[drop_card.CardNo] ++
 	}
 
 	same_card_nums = make([]int, 0)
-	max_same_card = 0
+	most = 0
 	for i, num := range arr {
-		if num > max_same_card {
+		if num > most {
 			same_card_nums = same_card_nums[0:0]
-			max_same_card = num
+			most = num
 			same_card_nums = append(same_card_nums, i)
-		}else if num == max_same_card {
+		}else if num == most {
 			same_card_nums = append(same_card_nums, i)
+		}
+	}
+	return
+}
+
+func Is510K(drop_cards []*Card) (is_510k bool, cards_type int) {
+	cards_len := len(drop_cards)
+	is_510k = false
+	cards_type = CardsType_NO
+
+	if cards_len != 3 {
+		return
+	}
+
+	if drop_cards[0].CardNo == 5 && drop_cards[1].CardNo == 10 && drop_cards[2].CardNo == 13 {
+		is_510k = true
+		cards_type = CardsType_510K
+		if IsSameCardType(drop_cards) {
+			cards_type = CardsType_TRUE510K
+		}
+	}
+	return
+}
+
+func IsSameCardType(drop_cards []*Card) (bool) {
+	if len(drop_cards) == 0 {
+		return false
+	}
+
+	card_type := drop_cards[0].CardType
+	for _, drop_card := range drop_cards {
+		if drop_card.CardType != card_type {
+			return false
+		}
+	}
+	return true
+}
+
+func IsStraight(nums []int) (is_straight bool) {
+	num_len := len(nums)
+	is_straight = false
+
+	if num_len < 2 {
+		return
+	}
+
+	//获取牌的权重3-15
+	weight_arr := [16]bool{}
+	for _, num := range nums {
+		weight := GetWeightByCardNum(num)
+		if weight == 16 {
+			return false
+		}
+		weight_arr[weight] = true
+	}
+
+	weights := make([]int, 0)
+	for weight, b := range weight_arr{
+		if b {
+			weights = append(weights, weight)
+		}
+	}
+
+	//判断是否连续
+	if len(weights) < 2 {
+		return
+	}
+	prev_weight := weights[0] - 1
+	for _, weight := range weights {
+		if weight - prev_weight != 1 {
+			return
+		}
+		prev_weight = weight
+	}
+	is_straight = true
+	return
+}
+
+//获取A-K，王的权重
+func GetWeightByCardNum(num int) (weight int) {
+	if num < 3 {
+		return num + 13
+	}else if num <= 13 {
+		return num
+	}else {
+		return 16
+	}
+	return 0
+}
+
+func GetStraightWeight(nums []int) (weight int) {
+	weight = 18
+	for _, num := range nums {
+		w := GetWeightByCardNum(num)
+		if w < weight {
+			weight = w
 		}
 	}
 	return

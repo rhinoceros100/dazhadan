@@ -45,5 +45,5 @@ func (playingCards *PlayingCards) Tail(num int) []*Card {
 
 //丢弃一张牌
 func (playingCards *PlayingCards) DropCards(cards []*Card) bool {
-	return playingCards.CardsInHand.TakeWayGroup(cards)
+	return playingCards.CardsInHand.TakeAwayGroup(cards)
 }

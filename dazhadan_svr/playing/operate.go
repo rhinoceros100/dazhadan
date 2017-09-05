@@ -12,10 +12,10 @@ const (
 	OperateReadyRoom
 	OperateLeaveRoom
 
-	OperateConfirmDadu
+	OperateConfirmPlayAlone
 	OperateSwitchOperator
 	OperateDrop
-	OperateGuo
+	OperatePass
 )
 
 func (operateType OperateType) String() string {
@@ -26,14 +26,14 @@ func (operateType OperateType) String() string {
 		return "OperateReadyRoom"
 	case OperateLeaveRoom:
 		return "OperateLeaveRoom"
-	case OperateConfirmDadu:
-		return "OperateConfirmDadu"
+	case OperateConfirmPlayAlone:
+		return "OperateConfirmPlayAlone"
 	case OperateSwitchOperator:
 		return "OperateSwitchOperator"
 	case OperateDrop:
 		return "OperateDrop"
-	case OperateGuo:
-		return "OperateGuo"
+	case OperatePass:
+		return "OperatePass"
 	}
 	return "unknow OperateType"
 }
@@ -79,11 +79,11 @@ func NewOperateLeaveRoom(operator *Player, data *OperateLeaveRoomData) *Operate 
 	return newOperate(OperateLeaveRoom, operator, data)
 }
 
-type OperateConfirmDaduData struct {
-	IsDadu bool
+type OperateConfirmPlayAloneData struct {
+	IsPlayAlone bool
 }
-func NewOperateConfirmDadu(operator *Player, data *OperateConfirmDaduData) *Operate {
-	return newOperate(OperateConfirmDadu, operator, data)
+func NewOperateConfirmPlayAlone(operator *Player, data *OperateConfirmPlayAloneData) *Operate {
+	return newOperate(OperateConfirmPlayAlone, operator, data)
 }
 
 type OperateSwitchOperatorData struct {
@@ -95,12 +95,15 @@ func NewSwitchOperator(operator *Player, data *OperateSwitchOperatorData) *Opera
 
 type OperateDropData struct {
 	whatGroup []*card.Card
+	cardsType int
+	planeNum int
+	weight int
 }
 func NewOperateDrop(operator *Player, data *OperateDropData) *Operate {
 	return newOperate(OperateDrop, operator, data)
 }
 
-type OperateGuoData struct {}
-func NewOperateGuo(operator *Player, data *OperateGuoData) *Operate {
-	return newOperate(OperateGuo, operator, data)
+type OperatePassData struct {}
+func NewOperatePass(operator *Player, data *OperatePassData) *Operate {
+	return newOperate(OperatePass, operator, data)
 }

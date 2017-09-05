@@ -15,13 +15,13 @@ const (
 	CardsType_STAIGHT				//顺子
 	CardsType_PAIR			           	//对子
 	CardsType_PAIRS		           		//连对
-	CardsType_32		           		//三带二
+	CardsType_32		           		//三带二 5
 	CardsType_43		           		//四带三
 	CardsType_54		           		//五带四
 	CardsType_65		           		//六带五
 	CardsType_76		           		//七带六
 	CardsType_87		           		//八带七
-	CardsType_PLANE32	           		//三带二飞机
+	CardsType_PLANE32	           		//三带二飞机 11
 	CardsType_PLANE43	           		//四带三飞机
 	CardsType_PLANE54	           		//五带四飞机
 	CardsType_PLANE65	           		//六带五飞机
@@ -34,4 +34,12 @@ const (
 	CardsType_BOMB6		= 25        		//六炸
 	CardsType_BOMB7		= 26       		//七炸
 	CardsType_BOMB8		= 27       		//八炸
+	CardsType_JOKER		= 28       		//王炸
+)
+
+const (
+	InfoType_Normal		int32 = iota		//普通结果
+	InfoType_Shuangji				//双基
+	InfoType_PlayAloneSucc				//打独成功
+	InfoType_PlayAloneFail				//打独失败
 )

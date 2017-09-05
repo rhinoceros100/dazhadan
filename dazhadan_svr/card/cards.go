@@ -118,7 +118,7 @@ func (cards *Cards) AppendCards(other *Cards) {
 }
 
 //取走一组指定的牌，并返回成功或者失败
-func (cards *Cards) TakeWayGroup(drop_cards []*Card) bool {
+func (cards *Cards) TakeAwayGroup(drop_cards []*Card) bool {
 	if drop_cards == nil || len(drop_cards) == 0 {
 		return true
 	}
@@ -134,19 +134,14 @@ func (cards *Cards) TakeWayGroup(drop_cards []*Card) bool {
 			}
 		}
 	}
-	//log.Debug("cards_len:", cards_len, ", same_num:", same_num)
 	if cards_len != same_num {
 		return false
 	}
 
-	//log.Debug(cards)
-	//log.Debug(drop_cards)
 	//删除相应的牌
 	for _, drop_card := range drop_cards {
-		//log.Debug("compare", drop_card)
 		for idx, card := range cards.Data {
 			if card.SameAs(drop_card) {
-				//log.Debug("same", drop_card)
 				cards.Data = append(cards.Data[0:idx], cards.Data[idx + 1:]...)
 				break
 			}
@@ -157,7 +152,7 @@ func (cards *Cards) TakeWayGroup(drop_cards []*Card) bool {
 }
 
 //取走一张指定的牌，并返回成功或者失败
-func (cards *Cards) TakeWay(drop *Card) bool {
+func (cards *Cards) TakeAway(drop *Card) bool {
 	if drop == nil {
 		return true
 	}
@@ -248,7 +243,7 @@ func (cards *Cards) hasCards(subCards *Cards) bool {
 		if !tmpCards.HasCard(subCard) {
 			return false
 		}
-		tmpCards.TakeWay(subCard)
+		tmpCards.TakeAway(subCard)
 	}
 
 	return true
