@@ -26,7 +26,6 @@ func help() {
 	log.Debug("-----------------help---------------------")
 }
 
-//TODO 总结算消息
 type PlayerObserver struct {}
 func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 	log_time := time.Now().Unix()
@@ -48,8 +47,12 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 			log.Debug(log_time, player, "OnMsg MsgGameEnd")
 		}
 	case playing.MsgRoomClosed:
-		if _, ok := msg.Data.(*playing.RoomClosedMsgData); ok {
+		if close_data, ok := msg.Data.(*playing.RoomClosedMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgRoomClosed")
+			for _, data := range close_data.Summaries	{
+				log.Debug(data.P, "WinNum:", data.WinNum, "ShuangjiNum:", data.ShuangjiNum, "PaSuccNum:", data.PaSuccNum, "TotalPrize:", data.TotalPrize,
+				"TotalCoin:", data.TotalCoin, "IsWinner:", data.IsWinner, "IsMostWinner:", data.IsMostWinner, "IsMostLoser:", data.IsMostLoser)
+			}
 		}
 	case playing.MsgGetInitCards:
 		if init_data, ok := msg.Data.(*playing.GetInitCardsMsgData); ok {
@@ -69,7 +72,7 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		}
 	case playing.MsgStartPlay:
 		if sp_data, ok := msg.Data.(*playing.StartPlayMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgStartPlay, is_pa:", sp_data.IsPlayAlone, "assist:", sp_data.Assist, "master:", sp_data.Master)
+			log.Debug(log_time, player, "OnMsg MsgStartPlay, is_pa:", sp_data.IsPlayAlone, ",assist:", sp_data.Assist, ",master:", sp_data.Master)
 		}
 	case playing.MsgSwitchOperator:
 		if _, ok := msg.Data.(*playing.SwitchOperatorMsgData); ok {
@@ -77,17 +80,18 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		}
 	case playing.MsgDrop:
 		if drop_data, ok := msg.Data.(*playing.DropMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgDrop", msg.Owner, "score:", drop_data.TableScore, "cards:", drop_data.WhatGroup)
+			log.Debug(log_time, player, "MsgDrop", msg.Owner, "score", drop_data.TableScore, "CardsType", drop_data.CardsType, "Weight", drop_data.Weight, "cards", drop_data.WhatGroup)
 		}
 	case playing.MsgPass:
 		if _, ok := msg.Data.(*playing.PassMsgData); ok {
-			//log.Debug(log_time, player, "OnMsg MsgGuo", msg.Owner)
+			//log.Debug(log_time, player, "OnMsg MsgPass", msg.Owner)
 		}
 	case playing.MsgSummary:
 		if summary_data, ok := msg.Data.(*playing.SummaryMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgJiesuan, jiesuan_data:")
+			log.Debug(log_time, player, "OnMsg MsgSummary, summary_data:", summary_data.InfoType)
 			for _, score_data := range summary_data.Scores	{
-				log.Debug(score_data.P, score_data.P.IsMaster(), "Score:", score_data.Rank, score_data.TotalCoin)
+				log.Debug(score_data.P, score_data.P.IsMaster(), "Rank:", score_data.Rank, "Score:", score_data.Score, "IsWin:", score_data.IsWin,
+				"Prize:", score_data.Prize, "PrizeCoin:", score_data.PrizeCoin, "Coin:", score_data.Coin, "TotalCoin:", score_data.TotalCoin)
 			}
 		}
 	}

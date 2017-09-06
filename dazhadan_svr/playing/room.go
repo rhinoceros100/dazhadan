@@ -51,6 +51,7 @@ type Room struct {
 
 	//begin playingGameData, reset when start playing game
 	cardPool		*card.Pool				//洗牌池
+	creatorUid		uint64					//创建房间玩家的uid
 	opMaster		*Player					//当前出过牌的玩家
 	waitOperator		*Player					//等待出牌的玩家
 	masterPlayer 		*Player					//庄
@@ -60,6 +61,10 @@ type Room struct {
 	turnCard		*card.Card				//翻出的牌
 	tableScore		int32					//现在桌面上未被赢取的分数
 	endPlayingNum		int32					//本局已经出完牌的玩家数量
+
+	cardsType 		int					//上一次出的牌型
+	planeNum 		int					//飞机数量
+	weight	 		int					//权重
 	//end playingGameData, reset when start playing game
 
 	roomOperateCh	chan *Operate
@@ -79,9 +84,13 @@ func NewRoom(id uint64, config *RoomConfig) *Room {
 		cardPool:		card.NewPool(),
 		observers:		make([]RoomObserver, 0),
 		roomStatus:		RoomStatusWaitAllPlayerEnter,
-		tableScore:	0,
-		playedGameCnt:	0,
-		endPlayingNum:	0,
+		creatorUid:		0,
+		tableScore:		0,
+		playedGameCnt:		0,
+		endPlayingNum:		0,
+		cardsType:		0,
+		planeNum:		0,
+		weight:			0,
 		opMaster:		 nil,
 		waitOperator:		 nil,
 		masterPlayer:		 nil,
@@ -195,6 +204,30 @@ func (room *Room) IncEndPlayingNum() int32 {
 	return room.endPlayingNum
 }
 
+func (room *Room) GetCardsType() int {
+	return room.cardsType
+}
+
+func (room *Room) SetCardsType(cardsType int) {
+	room.cardsType = cardsType
+}
+
+func (room *Room) GetPlaneNum() int {
+	return room.planeNum
+}
+
+func (room *Room) SetPlaneNum(planeNum int) {
+	room.planeNum = planeNum
+}
+
+func (room *Room) GetWeight() int {
+	return room.weight
+}
+
+func (room *Room) SetWeight(weight int) {
+	room.weight = weight
+}
+
 func (room *Room) close() {
 	log.Debug(time.Now().Unix(), room, "Room.close")
 	room.stop = true
@@ -202,8 +235,9 @@ func (room *Room) close() {
 		observer.OnRoomClosed(room)
 	}
 
+	msg := room.totalSummary()
 	for _, player := range room.players {
-		player.OnRoomClosed()
+		player.OnRoomClosed(msg)
 	}
 }
 
@@ -217,6 +251,35 @@ func (room *Room) switchStatus(status RoomStatusType) {
 	log.Debug(time.Now().Unix(), room, "room status switch,", room.roomStatus, " =>", status)
 	room.roomStatus = status
 	log.Debug("---------------------------------------")
+}
+
+func (room *Room) canCover(cardsType, planeNum, weight int) (canCover bool) {
+	canCover = false
+	if room.GetCardsType() == card.CardsType_NO {
+		return cardsType != card.CardsType_NO
+	}
+	//已经出的牌型非炸弹牌型
+	if room.GetCardsType() < 20{
+		if cardsType > 20 {
+			return true
+		}
+		//普通牌型打普通牌型必须为同一牌型，并且飞机数量必须相同
+		if cardsType != room.GetCardsType(){
+			return false
+		}
+		if cardsType == card.CardsType_STAIGHT || cardsType == card.CardsType_PAIRS || cardsType >= 11 {
+			if planeNum != room.GetPlaneNum() {
+				return false
+			}
+		}
+		return weight > room.GetWeight()
+	}
+
+	//更大的炸弹可以管住
+	if cardsType > room.GetCardsType(){
+		return true
+	}
+	return weight > room.GetWeight()
 }
 
 //等待游戏开局
@@ -263,7 +326,7 @@ func (room *Room) waitDropCard(player *Player, mustDrop bool) bool{
 	for{
 		select {
 		case <- time.After(time.Second * room.config.WaitDropSec):
-			random := util.RandomN(4)
+			random := util.RandomN(2)
 			log.Debug(time.Now().Unix(), player, "waitDropCard do PlayerOperate, random:", random)
 
 			if mustDrop || random == 0 {
@@ -282,6 +345,8 @@ func (room *Room) waitDropCard(player *Player, mustDrop bool) bool{
 
 				data := &OperateDropData{whatGroup:dropCards}
 				data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards)
+				can_cover := room.canCover(data.cardsType, data.planeNum, data.weight)
+				log.Debug("******can_cover:", can_cover)
 				op := NewOperateDrop(player, data)
 				room.dealPlayerOperate(op)
 				return true
@@ -485,13 +550,15 @@ func (room *Room) playGame() {
 
 	is_round_end := false
 	if room.opMaster.GetNeedDrop() {
-		//log.Debug("wait drop1:", room.opMaster)
 		room.waitOperator = room.opMaster
 		room.waitDropCard(room.opMaster, true)
 
 		//查看玩家是否出完手牌
 		if room.isAllCardsDropped(room.opMaster) {
 			room.opMaster.SetIsEndPlaying(true)
+			rank := room.IncEndPlayingNum()
+			room.opMaster.SetRank(rank)
+
 			is_round_end = room.isRoundEnd(room.opMaster)
 			if !is_round_end {
 				room.nextOpMaster = room.oppositePlayer(room.opMaster)
@@ -510,7 +577,6 @@ func (room *Room) playGame() {
 		room.switchStatus(RoomStatusEndPlayGame)
 		//通知开始出牌
 		msg := room.summary()
-		//msg := NewSummaryMsg(nil, summary_data)
 		for _, player := range room.players {
 			player.OnSummary(msg)
 		}
@@ -525,6 +591,10 @@ func (room *Room) playGame() {
 			table_score := room.GetTableScore()
 			tmpPlayer.AddScore(table_score)
 			room.ResetTableScore()
+			//重置已出牌型
+			room.SetCardsType(card.CardsType_NO)
+			room.SetPlaneNum(0)
+			room.SetWeight(0)
 
 			if nil != room.nextOpMaster {
 				room.switchOperator(room.nextOpMaster, true)
@@ -536,7 +606,6 @@ func (room *Room) playGame() {
 		}
 
 		room.waitOperator = tmpPlayer
-		//log.Debug("wait drop2:", tmpPlayer)
 		is_drop := room.waitDropCard(tmpPlayer, false)
 		if is_drop {
 			//查看玩家是否出完手牌
@@ -708,13 +777,13 @@ func (room *Room) summary() *Message {
 			master_player.SetIsWin(true)
 			for _, player := range room.players {
 				if player != master_player {
-					player.AddCoin(-room.config.PlayAloneCoin)
+					player.AddCoin(0-room.config.PlayAloneCoin)
 					player.SetIsWin(false)
 				}
 			}
 		}else{ //打独失败
 			info_type = card.InfoType_PlayAloneFail
-			master_player.AddCoin(-room.config.PlayAloneCoin * 3)
+			master_player.AddCoin(0-room.config.PlayAloneCoin * 3)
 			master_player.SetIsWin(false)
 			for _, player := range room.players {
 				if player != master_player {
@@ -733,15 +802,15 @@ func (room *Room) summary() *Message {
 			assist_player.SetIsWin(true)
 			for _, player := range room.players {
 				if player != master_player && player != assist_player {
-					player.AddCoin(-room.config.ShuangjiCoin)
+					player.AddCoin(0-room.config.ShuangjiCoin)
 					player.SetIsWin(false)
 				}
 			}
 		}else if master_player.GetRank() + assist_player.GetRank() == 0 {
 			info_type = card.InfoType_Shuangji
-			master_player.AddCoin(-room.config.ShuangjiCoin)
+			master_player.AddCoin(0-room.config.ShuangjiCoin)
 			master_player.SetIsWin(false)
-			assist_player.AddCoin(-room.config.ShuangjiCoin)
+			assist_player.AddCoin(0-room.config.ShuangjiCoin)
 			assist_player.SetIsWin(false)
 			for _, player := range room.players {
 				if player != master_player && player != assist_player {
@@ -772,14 +841,14 @@ func (room *Room) summary() *Message {
 				assist_player.SetIsWin(true)
 				for _, player := range room.players {
 					if player != master_player && player != assist_player {
-						player.AddCoin(-room.config.WinCoin)
+						player.AddCoin(0-room.config.WinCoin)
 						player.SetIsWin(false)
 					}
 				}
 			}else if master_side_scores < common_side_scores {
-				master_player.AddCoin(-room.config.WinCoin)
+				master_player.AddCoin(0-room.config.WinCoin)
 				master_player.SetIsWin(false)
-				assist_player.AddCoin(-room.config.WinCoin)
+				assist_player.AddCoin(0-room.config.WinCoin)
 				assist_player.SetIsWin(false)
 				for _, player := range room.players {
 					if player != master_player && player != assist_player {
@@ -795,13 +864,13 @@ func (room *Room) summary() *Message {
 	for _, prize_player := range room.players {
 		prize_num := prize_player.GetPrize()
 		if prize_num > 0 {
+			prize_player.AddCoin(room.config.PrizeCoin * 3 * prize_num)
+			prize_player.AddPrizeCoin(room.config.PrizeCoin * 3 * prize_num)
+
 			for _, player := range room.players {
 				if player != prize_player{
-					prize_player.AddCoin(room.config.PrizeCoin * 3 * prize_num)
-					prize_player.AddPrizeCoin(room.config.PrizeCoin * 3 * prize_num)
-
-					player.AddCoin(room.config.PrizeCoin * prize_num)
-					player.AddPrizeCoin(room.config.PrizeCoin * prize_num)
+					player.AddCoin((0 - room.config.PrizeCoin) * prize_num)
+					player.AddPrizeCoin((0 - room.config.PrizeCoin) * prize_num)
 				}
 			}
 		}
@@ -821,9 +890,64 @@ func (room *Room) summary() *Message {
 			IsWin:player.GetIsWin(),
 		}
 		data.Scores = append(data.Scores, player_summary_data)
+
+		player.AddTotalPrize(player.GetPrize())
+		if player.GetIsWin() {
+			player.IncWinNum()
+			if info_type == card.InfoType_Shuangji{
+				player.IncShuangjiNum()
+			}
+			if info_type == card.InfoType_PlayAloneSucc || info_type == card.InfoType_PlayAloneFail{
+				player.IncPaSuccNum()
+			}
+		}
 	}
-	data.info_type = info_type
+	data.InfoType = info_type
 	return NewSummaryMsg(nil, data)
+}
+
+func (room *Room) totalSummary() *Message {
+	var max_win, max_lose int32 = 0, 0
+	for _, player := range room.players {
+		total_coin := player.GetTotalCoin()
+		if total_coin > max_win {
+			max_win = total_coin
+		}
+		if total_coin < max_lose {
+			max_lose = total_coin
+		}
+	}
+
+	data := &RoomClosedMsgData{}
+	data.Summaries = make([]*TotalSummaryData, 0)
+	for _, player := range room.players {
+		summary_data := &TotalSummaryData{
+			P:player,
+			WinNum:player.GetWinNum(),
+			ShuangjiNum:player.GetShuangjiNum(),
+			PaSuccNum:player.GetPaSuccNum(),
+			TotalPrize:player.GetTotalPrize(),
+			TotalCoin:player.GetTotalCoin(),
+			IsWinner:false,
+			IsMostWinner:false,
+			IsMostLoser:false,
+			IsCreator:false,
+		}
+		if summary_data.TotalCoin > 0 {
+			summary_data.IsWinner = true
+		}
+		if player.GetId() == room.creatorUid {
+			summary_data.IsCreator = true
+		}
+		if summary_data.TotalCoin == max_lose {
+			summary_data.IsMostLoser = true
+		}
+		if summary_data.TotalCoin == max_win {
+			summary_data.IsMostWinner = true
+		}
+		data.Summaries = append(data.Summaries, summary_data)
+	}
+	return NewRoomClosedMsg(nil, data)
 }
 
 //取指定玩家的下一个玩家
@@ -944,6 +1068,11 @@ func (room *Room) dealPlayerOperate(op *Operate) bool{
 				room.AddTableScore(dropped_score)
 				prize := room.getPrizeByCardsType(drop_data.cardsType)
 				op.Operator.AddPrize(prize)
+				if drop_data.cardsType != card.CardsType_NO{
+					room.SetCardsType(drop_data.cardsType)
+					room.SetPlaneNum(drop_data.planeNum)
+					room.SetWeight(drop_data.weight)
+				}
 
 				log.Debug(time.Now().Unix(), room, "Room.dealPlayerOperate player drop :", op.Operator)
 				op.ResultCh <- true
@@ -1128,6 +1257,9 @@ func (room *Room) Reset() {
 	room.turnCard = nil
 	room.tableScore = 0
 	room.endPlayingNum = 0
+	room.cardsType = 0
+	room.planeNum = 0
+	room.weight = 0
 }
 
 func (room *Room) String() string {

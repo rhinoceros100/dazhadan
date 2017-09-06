@@ -148,7 +148,7 @@ type PlayerSummaryData struct {
 //结算消息
 type SummaryMsgData struct {
 	Scores []*PlayerSummaryData
-	info_type int32
+	InfoType int32
 }
 func NewSummaryMsg(owner *Player, data *SummaryMsgData) *Message {
 	return newMsg(MsgSummary, owner, data)
@@ -187,7 +187,22 @@ func NewGameEndMsg(owner *Player, data *GameEndMsgData) *Message{
 }
 
 //房间结束的消息
-type RoomClosedMsgData struct {}
+type TotalSummaryData struct {
+	P *Player
+	WinNum int32
+	ShuangjiNum int32
+	PaSuccNum int32
+	TotalPrize int32
+	TotalCoin int32
+
+	IsWinner bool
+	IsMostWinner bool
+	IsMostLoser bool
+	IsCreator bool
+}
+type RoomClosedMsgData struct {
+	Summaries []*TotalSummaryData
+}
 func NewRoomClosedMsg(owner *Player, data *RoomClosedMsgData) *Message{
 	return newMsg(MsgRoomClosed, owner, data)
 }
@@ -196,6 +211,9 @@ func NewRoomClosedMsg(owner *Player, data *RoomClosedMsgData) *Message{
 type DropMsgData struct {
 	WhatGroup []*card.Card
 	TableScore int32
+	CardsType int
+	PlaneNum int
+	Weight int
 }
 func NewDropMsg(owner *Player, data *DropMsgData) *Message{
 	return newMsg(MsgDrop, owner, data)

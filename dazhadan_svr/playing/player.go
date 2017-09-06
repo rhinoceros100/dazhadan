@@ -28,6 +28,11 @@ type Player struct {
 	score		        int32                   //一轮得分
 	prize		        int32                   //获得奖励次数
 
+	winNum		        int32                   //总共赢的次数
+	shuangjiNum		int32                   //总共双基的次数
+	paSuccNum		int32                   //打独成功的次数
+	totalPrize		int32                   //获得的总奖金数
+
 	playingCards 	*card.PlayingCards	//玩家手上的牌
 	niuCards         []*card.Card
 	observers	 []PlayerObserver
@@ -43,12 +48,17 @@ func NewPlayer(id uint64) *Player {
 		needDrop:     	false,
 		isWin:     	false,
 
-		rank:      0,
-		score:     0,
-		prize:     0,
-		totalCoin: 0,
-		prizeCoin: 0,
-		coin:      0,
+		rank:      	0,
+		score:     	0,
+		prize:     	0,
+		totalCoin: 	0,
+		prizeCoin: 	0,
+		coin:      	0,
+		winNum:      	0,
+		shuangjiNum:    0,
+		paSuccNum:      0,
+		totalPrize:     0,
+
 		playingCards:	card.NewPlayingCards(),
 		observers:	make([]PlayerObserver, 0),
 		niuCards:       make([]*card.Card, 0),
@@ -113,8 +123,8 @@ func (player *Player) GetScore() int32 {
 	return player.score
 }
 
-func (player *Player) AddScore(score int32) {
-	player.score += score
+func (player *Player) AddScore(add int32) {
+	player.score += add
 }
 
 func (player *Player) ResetScore() {
@@ -130,15 +140,51 @@ func (player *Player) SetRank(rank int32) {
 }
 
 func (player *Player) GetPrize() int32 {
-	return player.score
+	return player.prize
 }
 
-func (player *Player) AddPrize(prize int32) {
-	player.prize += prize
+func (player *Player) AddPrize(add int32) {
+	player.prize += add
 }
 
 func (player *Player) ResetPrize() {
 	player.prize = 0
+}
+
+func (player *Player) GetWinNum() int32 {
+	return player.winNum
+}
+
+func (player *Player) IncWinNum() int32 {
+	player.winNum++
+	return player.winNum
+}
+
+func (player *Player) GetShuangjiNum() int32 {
+	return player.shuangjiNum
+}
+
+func (player *Player) IncShuangjiNum() int32 {
+	player.shuangjiNum++
+	return player.shuangjiNum
+}
+
+func (player *Player) GetPaSuccNum() int32 {
+	return player.paSuccNum
+}
+
+func (player *Player) IncPaSuccNum() int32 {
+	player.paSuccNum++
+	return player.paSuccNum
+}
+
+func (player *Player) GetTotalPrize() int32 {
+	return player.totalPrize
+}
+
+func (player *Player) AddTotalPrize(add int32) int32 {
+	player.totalPrize += add
+	return player.totalPrize
 }
 
 func (player *Player) GetIsPlayAlone() bool {
@@ -270,6 +316,8 @@ func (player *Player) OperateDropCard(cards []*card.Card) bool {
 	}
 	drop_cards := card.CreateNewCards(cards)
 	data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards)
+	can_cover := player.room.canCover(data.cardsType, data.planeNum, data.weight)
+	log.Debug("******can_cover:", can_cover)
 	op := NewOperateDrop(player, data)
 	player.room.PlayerOperate(op)
 	return player.waitResult(op.ResultCh)
@@ -335,7 +383,7 @@ func (player *Player) String() string{
 	if player == nil {
 		return "{player=nil}"
 	}
-	return fmt.Sprintf("{player=%v, pos=%v, score=%v}", player.id, player.position, player.score)
+	return fmt.Sprintf("{player=%v, pos=%v}", player.id, player.position)
 }
 
 //玩家成功操作的通知
@@ -435,6 +483,9 @@ func (player *Player) OnDrop(op *Operate) {
 		msgData := &DropMsgData{
 			WhatGroup:drop_data.whatGroup,
 			TableScore:player.room.GetTableScore(),
+			CardsType:drop_data.cardsType,
+			PlaneNum:drop_data.planeNum,
+			Weight:drop_data.weight,
 		}
 		player.notifyObserver(NewDropMsg(op.Operator, msgData))
 	}
@@ -477,13 +528,12 @@ func (player *Player) OnGetInitCards() {
 	player.notifyObserver(NewGetInitCardsMsg(player, data))
 }
 
-func (player *Player) OnRoomClosed() {
+func (player *Player) OnRoomClosed(msg *Message) {
 	//log.Debug(time.Now().Unix(), player, "OnRoomClosed")
 	player.room = nil
 	//player.Reset()
 
-	data := &RoomClosedMsgData{}
-	player.notifyObserver(NewRoomClosedMsg(player, data))
+	player.notifyObserver(msg)
 }
 
 func (player *Player) OnEndPlayGame() {

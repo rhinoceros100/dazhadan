@@ -240,3 +240,65 @@ func TestGetStraightWeight(t *testing.T) {
 	nums3 := []int{1,2,13,12}
 	t.Log(GetStraightWeight(nums3))
 }
+
+type roon struct {
+	cardsType int
+	planeNum int
+	weight int
+}
+
+func canCover(cardsType, planeNum, weight int, roo *roon) (canCover bool) {
+	canCover = false
+	if roo.cardsType == CardsType_NO {
+		return cardsType != CardsType_NO
+	}
+	//已经出的牌型非炸弹牌型
+	if roo.cardsType < 20{
+		if cardsType > 20 {
+			return true
+		}
+		//普通牌型打普通牌型必须为同一牌型，并且飞机数量必须相同
+		if cardsType != roo.cardsType{
+			return false
+		}
+		if cardsType == CardsType_STAIGHT || cardsType == CardsType_PAIRS || cardsType >= 11 {
+			if planeNum != roo.planeNum {
+				return false
+			}
+		}
+		return weight > roo.weight
+	}
+
+	//更大的炸弹可以管住
+	if cardsType > roo.cardsType{
+		return true
+	}
+	return weight > roo.weight
+}
+
+func TestCanCover(t *testing.T) {
+	roo1 := &roon{cardsType:0, planeNum:0, weight:3}
+	assert.Equal(t, canCover(3, 3, 2, roo1), true)
+	assert.Equal(t, canCover(0, 3, 2, roo1), false)
+
+	roo2 := &roon{cardsType:CardsType_32, planeNum:0, weight:6}
+	assert.Equal(t, canCover(CardsType_32, 3, 3, roo2), false)
+	assert.Equal(t, canCover(CardsType_32, 3, 9, roo2), true)
+	assert.Equal(t, canCover(CardsType_510K, 3, 9, roo2), true)
+
+	roo3 := &roon{cardsType:CardsType_PLANE43, planeNum:3, weight:5}
+	assert.Equal(t, canCover(CardsType_32, 3, 6, roo3), false)
+	assert.Equal(t, canCover(CardsType_PLANE43, 2, 9, roo3), false)
+	assert.Equal(t, canCover(CardsType_PLANE43, 3, 5, roo3), false)
+	assert.Equal(t, canCover(CardsType_PLANE43, 3, 8, roo3), true)
+	assert.Equal(t, canCover(CardsType_BOMB4, 2, 8, roo3), true)
+
+	roo4 := &roon{cardsType:CardsType_TRUE510K, planeNum:0, weight:0}
+	assert.Equal(t, canCover(CardsType_TRUE510K, 2, 0, roo4), false)
+	assert.Equal(t, canCover(CardsType_BOMB4, 2, 8, roo4), true)
+
+	roo5 := &roon{cardsType:CardsType_BOMB4, planeNum:0, weight:5}
+	assert.Equal(t, canCover(CardsType_BOMB4, 2, 3, roo5), false)
+	assert.Equal(t, canCover(CardsType_BOMB4, 2, 8, roo5), true)
+	assert.Equal(t, canCover(CardsType_BOMB7, 2, 2, roo5), true)
+}
