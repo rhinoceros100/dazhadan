@@ -21,6 +21,10 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 	most, sames := GetSameCardsNum(drop_cards)
 	if cards_len == 2 {
 		if most == 2 {
+			//大王、小王不能成对
+			if drop_cards[0].Weight != drop_cards[1].Weight {
+				return CardsType_NO, plane_num, weight
+			}
 			return CardsType_PAIR, plane_num, drop_cards[0].Weight
 		}
 		return
@@ -91,6 +95,12 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 			}
 			if most == 4 && cards_len == 7 {
 				cards_type = CardsType_43
+			}
+			if most == 4 && len(sames) == 2 && is_last_cards {
+				if IsStraight(sames) {
+					plane_num = 2
+					cards_type = CardsType_PLANE43
+				}
 			}
 			return
 		}
@@ -167,6 +177,89 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 						cards_type = CardsType_PLANE43
 					case 3:
 						cards_type = CardsType_PLANE32
+					}
+				}
+			}
+			//类似于3334447779的情况
+			if (cards_type == CardsType_NO && cards_len < take * same_len) {
+				for i := 3; i <= 9; i++ {//i个most，其中i-1个可以组成顺子
+					if same_len == i && cards_len <= take * (i-1) {
+						if (cards_len == take * (i-1)) || (cards_len < take * (i-1) && is_last_cards) {
+							if IsStraight(sames[0:(i-1)]) || IsStraight(sames[1:]){
+								plane_num = i - 1
+								switch most {
+								case 8:
+									cards_type = CardsType_PLANE87
+								case 7:
+									cards_type = CardsType_PLANE76
+								case 6:
+									cards_type = CardsType_PLANE65
+								case 5:
+									cards_type = CardsType_PLANE54
+								case 4:
+									cards_type = CardsType_PLANE43
+								case 3:
+									cards_type = CardsType_PLANE32
+								}
+							}
+							if IsStraight(sames[0:(i-1)]) {
+								weight = sames[0]
+							}else if IsStraight(sames[1:]) {
+								weight = sames[1]
+							}
+						}
+					}
+				}
+				if cards_type != CardsType_NO {
+					return
+				}
+				for i := 5; i <= 9; i++ {//i个most，其中i-2个可以组成顺子
+					if same_len == i && cards_len <= take * (i-2) {
+						if (cards_len == take * (i-2)) || (cards_len < take * (i-2) && is_last_cards) {
+							if IsStraight(sames[0:(i-2)]) || IsStraight(sames[1:(i-1)]) || IsStraight(sames[2:]){
+								plane_num = i - 2
+								switch most {
+								case 5:
+									cards_type = CardsType_PLANE54
+								case 4:
+									cards_type = CardsType_PLANE43
+								case 3:
+									cards_type = CardsType_PLANE32
+								}
+							}
+							if IsStraight(sames[0:(i-2)]) {
+								weight = sames[0]
+							}else if IsStraight(sames[1:(i-1)]) {
+								weight = sames[1]
+							}else if IsStraight(sames[2:]) {
+								weight = sames[2]
+							}
+						}
+					}
+				}
+				if cards_type != CardsType_NO {
+					return
+				}
+				for i := 8; i <= 9; i++ {//i个most，其中i-3个可以组成顺子
+					if same_len == i && cards_len <= take * (i-3) {
+						if (cards_len == take * (i-3)) || (cards_len < take * (i-3) && is_last_cards) {
+							if IsStraight(sames[0:(i-3)]) || IsStraight(sames[1:(i-2)]) || IsStraight(sames[2:(i-1)]) || IsStraight(sames[3:]){
+								plane_num = i - 3
+								switch most {
+								case 3:
+									cards_type = CardsType_PLANE32
+								}
+							}
+							if IsStraight(sames[0:(i-3)]) {
+								weight = sames[0]
+							}else if IsStraight(sames[1:(i-2)]) {
+								weight = sames[1]
+							}else if IsStraight(sames[2:(i-1)]) {
+								weight = sames[2]
+							}else if IsStraight(sames[3:]) {
+								weight = sames[3]
+							}
+						}
 					}
 				}
 			}

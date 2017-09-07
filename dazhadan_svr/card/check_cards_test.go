@@ -16,19 +16,26 @@ func TestGetCardsType(t *testing.T) {
 	card8 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
 	card9 := &Card{CardType: CardType_Diamond,CardNo: 2,}	//方片2
 
-	card10 := &Card{CardType: CardType_BlackJoker,CardNo: 14,}	//小王
-	card11 := &Card{CardType: CardType_BlackJoker,CardNo: 14,}	//小王
-	card12 := &Card{CardType: CardType_RedJoker,CardNo: 14,}	//大王
-	card13 := &Card{CardType: CardType_RedJoker,CardNo: 14,}	//大王
+	card10 := &Card{CardType: CardType_BlackJoker,CardNo: 14, Weight:16}	//小王
+	card11 := &Card{CardType: CardType_BlackJoker,CardNo: 14, Weight:16}	//小王
+	card12 := &Card{CardType: CardType_RedJoker,CardNo: 14, Weight:17}	//大王
+	card13 := &Card{CardType: CardType_RedJoker,CardNo: 14, Weight:17}	//大王
 
 	card14 := &Card{CardType: CardType_Diamond,CardNo: 3,}	//方片3
 	card15 := &Card{CardType: CardType_Diamond,CardNo: 4,}	//方片4
 	card16 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片5
-	card17 := &Card{CardType: CardType_Diamond,CardNo: 6,}	//方片6
-	card18 := &Card{CardType: CardType_Diamond,CardNo: 7,}	//方片7
+	card17 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
+	card18 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
 	card19 := &Card{CardType: CardType_Diamond,CardNo: 3,}	//方片3
-	card20 := &Card{CardType: CardType_Diamond,CardNo: 4,}	//方片3
-	card21 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片3
+	card20 := &Card{CardType: CardType_Diamond,CardNo: 4,}	//方片4
+	card21 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片5
+	card22 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
+	card23 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
+	card24 := &Card{CardType: CardType_Spade,CardNo: 3,}	//黑桃3
+	card25 := &Card{CardType: CardType_Spade,CardNo: 4,}	//黑桃4
+	card26 := &Card{CardType: CardType_Spade,CardNo: 5,}	//黑桃5
+	card27 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
+	card28 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
 
 	cards1 := make([]*Card, 0)
 	cards1 = append(cards1, card1)
@@ -53,7 +60,7 @@ func TestGetCardsType(t *testing.T) {
 
 	cards4 := make([]*Card, 0)
 	cards4 = append(cards4, card10)
-	cards4 = append(cards4, card11)
+	//cards4 = append(cards4, card11)
 	cards4 = append(cards4, card12)
 	drop_cards4 := CreateNewCards(cards4)
 
@@ -109,6 +116,37 @@ func TestGetCardsType(t *testing.T) {
 	cards9 = append(cards9, card21)
 	drop_cards9 := CreateNewCards(cards9)
 
+	cards10 := make([]*Card, 0)
+	cards10 = append(cards10, card14)
+	cards10 = append(cards10, card15)
+	cards10 = append(cards10, card16)
+	cards10 = append(cards10, card17)
+	cards10 = append(cards10, card19)
+	cards10 = append(cards10, card20)
+	cards10 = append(cards10, card21)
+	cards10 = append(cards10, card24)
+	cards10 = append(cards10, card25)
+	cards10 = append(cards10, card26)
+	drop_cards10 := CreateNewCards(cards10)
+
+	cards11 := make([]*Card, 0)
+	cards11 = append(cards11, card14)
+	cards11 = append(cards11, card15)
+	cards11 = append(cards11, card16)
+	cards11 = append(cards11, card17)
+	cards11 = append(cards11, card18)
+	cards11 = append(cards11, card19)
+	cards11 = append(cards11, card20)
+	cards11 = append(cards11, card21)
+	cards11 = append(cards11, card22)
+	cards11 = append(cards11, card23)
+	cards11 = append(cards11, card24)
+	cards11 = append(cards11, card25)
+	cards11 = append(cards11, card26)
+	cards11 = append(cards11, card27)
+	cards11 = append(cards11, card28)
+	drop_cards11 := CreateNewCards(cards11)
+
 	t.Log(GetCardsType(drop_cards1, true))
 	t.Log(GetCardsType(drop_cards2, false))
 	t.Log(GetCardsType(drop_cards3, false))
@@ -119,6 +157,9 @@ func TestGetCardsType(t *testing.T) {
 	t.Log(GetCardsType(drop_cards7, true))
 	t.Log(GetCardsType(drop_cards8, false))
 	t.Log(GetCardsType(drop_cards9, false))
+	t.Log(GetCardsType(drop_cards10, false))
+	t.Log(GetCardsType(drop_cards11, false))
+	t.Log(GetCardsType(drop_cards11, true))
 }
 
 func TestGetSameCardsNum(t *testing.T) {
