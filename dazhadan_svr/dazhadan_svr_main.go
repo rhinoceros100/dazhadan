@@ -50,8 +50,8 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		if close_data, ok := msg.Data.(*playing.RoomClosedMsgData); ok {
 			log.Debug(log_time, player, "OnMsg MsgRoomClosed")
 			for _, data := range close_data.Summaries	{
-				log.Debug(data.P, "WinNum:", data.WinNum, "ShuangjiNum:", data.ShuangjiNum, "PaSuccNum:", data.PaSuccNum, "TotalPrize:", data.TotalPrize,
-				"TotalCoin:", data.TotalCoin, "IsWinner:", data.IsWinner, "IsMostWinner:", data.IsMostWinner, "IsMostLoser:", data.IsMostLoser)
+				log.Debug(data.P, "Win:", data.WinNum, "Shuangji:", data.ShuangjiNum, "PaSucc:", data.PaSuccNum, "TotalPrize:", data.TotalPrize,
+				"TotalCoin:", data.TotalCoin, "IsWin:", data.IsWinner, "IsMostWinner:", data.IsMostWinner, "IsMostLoser:", data.IsMostLoser)
 			}
 		}
 	case playing.MsgGetInitCards:
@@ -76,7 +76,7 @@ func (ob *PlayerObserver) OnMsg(player *playing.Player, msg *playing.Message) {
 		}
 	case playing.MsgSwitchOperator:
 		if _, ok := msg.Data.(*playing.SwitchOperatorMsgData); ok {
-			log.Debug(log_time, player, "OnMsg MsgSwitchOperator", msg.Owner)
+			log.Debug(log_time, player, "******OnMsg MsgSwitchOperator", msg.Owner)
 		}
 	case playing.MsgDrop:
 		if drop_data, ok := msg.Data.(*playing.DropMsgData); ok {

@@ -322,10 +322,14 @@ func (room *Room) isAllPlayerEnter() bool {
 	return true
 }
 
-func (room *Room) waitDropCard(player *Player, mustDrop bool) bool{
+func (room *Room) waitDropCard(player *Player, mustDrop bool, canDrop bool) bool{
+	wait_time := room.config.WaitDropSec
+	if !canDrop{
+		wait_time = time.Duration(2)
+	}
 	for{
 		select {
-		case <- time.After(time.Second * room.config.WaitDropSec):
+		case <- time.After(time.Second * wait_time):
 			random := util.RandomN(2)
 			log.Debug(time.Now().Unix(), player, "waitDropCard do PlayerOperate, random:", random)
 
@@ -487,7 +491,7 @@ func (room *Room) gameStart() {
 	fanpai_seq := util.RandomN(card.TOTAL_CARD_NUM)
 	room.masterPlayer, room.assistPlayer, room.turnCard = room.putCardsToPlayers(card.INIT_CARD_NUM, room.config.InitType, fanpai_seq)
 	//room.curOperator = room.masterPlayer
-	room.switchOperator(room.masterPlayer, true)
+	room.switchOpMaster(room.masterPlayer, true, true, false)
 	log.Debug(time.Now().Unix(), "master", room.masterPlayer)
 	log.Debug(time.Now().Unix(), "assist", room.assistPlayer)
 	log.Debug(time.Now().Unix(), "turnCard", room.turnCard)
@@ -550,8 +554,8 @@ func (room *Room) playGame() {
 
 	is_round_end := false
 	if room.opMaster.GetNeedDrop() {
-		room.waitOperator = room.opMaster
-		room.waitDropCard(room.opMaster, true)
+		room.switchWaitPlayer(room.opMaster, true, true)
+		room.waitDropCard(room.opMaster, true, true)
 
 		//查看玩家是否出完手牌
 		if room.isAllCardsDropped(room.opMaster) {
@@ -597,7 +601,7 @@ func (room *Room) playGame() {
 			room.SetWeight(0)
 
 			if nil != room.nextOpMaster {
-				room.switchOperator(room.nextOpMaster, true)
+				room.switchOpMaster(room.nextOpMaster, true, true, false)
 				room.nextOpMaster = nil
 			}else {
 				room.opMaster.SetNeedDrop(true)
@@ -605,8 +609,9 @@ func (room *Room) playGame() {
 			break
 		}
 
-		room.waitOperator = tmpPlayer
-		is_drop := room.waitDropCard(tmpPlayer, false)
+		canDrop := tmpPlayer.GetCanDrop()
+		room.switchWaitPlayer(tmpPlayer, false, canDrop)
+		is_drop := room.waitDropCard(tmpPlayer, false, canDrop)
 		if is_drop {
 			//查看玩家是否出完手牌
 			if room.isAllCardsDropped(tmpPlayer) {
@@ -625,7 +630,7 @@ func (room *Room) playGame() {
 				}
 			}
 
-			room.switchOperator(tmpPlayer, false)
+			room.switchOpMaster(tmpPlayer, false, true, false)
 			break
 		}
 	}
@@ -733,7 +738,38 @@ func (room *Room) switchPosition() {
 	}
 }
 
-func (room *Room) switchOperator(player *Player, mustDrop bool) {
+
+func (room *Room) switchOpMaster(player *Player, mustDrop bool, canDrop bool, needNotify bool) {
+	log.Debug(time.Now().Unix(), room, "switchOperator", room.opMaster, "=>", player)
+	room.opMaster = player
+	player.SetNeedDrop(mustDrop)
+
+	if needNotify {
+		op := room.makeSwitchOperatorOperate(player, mustDrop, canDrop)
+		for _, player := range room.players {
+			player.OnPlayerSuccessOperated(op)
+		}
+	}
+}
+
+func (room *Room) switchWaitPlayer(player *Player, mustDrop bool, canDrop bool) {
+	log.Debug(time.Now().Unix(), room, "switchWaitPlayer", room.waitOperator, "=>", player)
+	room.waitOperator = player
+
+	op := room.makeSwitchOperatorOperate(player, mustDrop, canDrop)
+	for _, player := range room.players {
+		player.OnPlayerSuccessOperated(op)
+	}
+}
+
+func (room *Room) makeSwitchOperatorOperate(operator *Player, mustDrop bool, canDrop bool) *Operate {
+	return NewSwitchOperator(operator, &OperateSwitchOperatorData{
+		MustDrop:mustDrop,
+		CanDrop:canDrop,
+	})
+}
+
+/*func (room *Room) switchOperator(player *Player, mustDrop bool) {
 	log.Debug(time.Now().Unix(), room, "switchOperator", room.opMaster, "=>", player)
 	room.opMaster = player
 	player.SetNeedDrop(mustDrop)
@@ -746,7 +782,7 @@ func (room *Room) switchOperator(player *Player, mustDrop bool) {
 
 func (room *Room) makeSwitchOperatorOperate(operator *Player, mustDrop bool) *Operate {
 	return NewSwitchOperator(operator, &OperateSwitchOperatorData{MustDrop:mustDrop})
-}
+}*/
 
 func (room *Room) endPlayGame() {
 	room.playedGameCnt++
@@ -860,17 +896,26 @@ func (room *Room) summary() *Message {
 		}
 	}
 
+	//遍历查看玩家总奖数量
+	var total_prize_num, prize_multiple int32 = 0, 1
+	for _, prize_player := range room.players {
+		total_prize_num += prize_player.GetPrize()
+	}
+	if total_prize_num == 1 && room.config.HaveDujiangDouble{
+		prize_multiple = 2
+		log.Debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@prize_multiple = 2")
+	}
 	//算奖金
 	for _, prize_player := range room.players {
 		prize_num := prize_player.GetPrize()
 		if prize_num > 0 {
-			prize_player.AddCoin(room.config.PrizeCoin * 3 * prize_num)
-			prize_player.AddPrizeCoin(room.config.PrizeCoin * 3 * prize_num)
+			prize_player.AddCoin(room.config.PrizeCoin * prize_multiple * 3 * prize_num)
+			prize_player.AddPrizeCoin(room.config.PrizeCoin * prize_multiple * 3 * prize_num)
 
 			for _, player := range room.players {
 				if player != prize_player{
-					player.AddCoin((0 - room.config.PrizeCoin) * prize_num)
-					player.AddPrizeCoin((0 - room.config.PrizeCoin) * prize_num)
+					player.AddCoin((0 - room.config.PrizeCoin * prize_multiple) * prize_num)
+					player.AddPrizeCoin((0 - room.config.PrizeCoin * prize_multiple) * prize_num)
 				}
 			}
 		}

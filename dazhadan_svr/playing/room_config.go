@@ -13,6 +13,7 @@ type RoomConfig struct {
 	InitType			int32        `json:"init_type"`
 	MaxPlayGameCnt			int	     `json:"max_play_game_cnt"`	//最大的游戏局数
 	RandomDropNum			int          `json:"random_drop_num"`	//随机出牌张数
+	HaveDujiangDouble		bool         `json:"have_dujiang_double"`//是否有独奖双倍
 
 	WaitPlayerEnterRoomTimeout	int        `json:"wait_player_enter_room_timeout"`
 	WaitPlayerOperateTimeout	int        `json:"wait_player_operate_timeout"`
@@ -37,7 +38,7 @@ func (config *RoomConfig) Init(score_type, prize_type, init_type int32) {
 		config.PlayAloneCoin = 30
 	}
 
-	if score_type == 1 {
+	if prize_type == 1 {
 		config.PrizeCoin = 3
 	}else {
 		config.PrizeCoin = 5
@@ -45,8 +46,9 @@ func (config *RoomConfig) Init(score_type, prize_type, init_type int32) {
 
 	config.InitType = init_type
 	config.NeedPlayerNum = 4
-	config.MaxPlayGameCnt = 20
+	config.MaxPlayGameCnt = 3
 	config.RandomDropNum = 5
+	config.HaveDujiangDouble = true
 
 	config.WaitPlayerEnterRoomTimeout = 300
 	config.WaitPlayerOperateTimeout = 300

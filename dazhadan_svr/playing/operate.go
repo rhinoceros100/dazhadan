@@ -88,6 +88,7 @@ func NewOperateConfirmPlayAlone(operator *Player, data *OperateConfirmPlayAloneD
 
 type OperateSwitchOperatorData struct {
 	MustDrop bool
+	CanDrop bool
 }
 func NewSwitchOperator(operator *Player, data *OperateSwitchOperatorData) *Operate {
 	return newOperate(OperateSwitchOperator, operator, data)

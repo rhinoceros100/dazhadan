@@ -129,6 +129,9 @@ func NewStartPlayMsg(owner *Player, data *StartPlayMsgData) *Message {
 
 //切换玩家消息
 type SwitchOperatorMsgData struct {
+	SwitchedPlayer		*Player
+	NeedDropCard            bool
+	CanDrop            bool		//是否能管住
 }
 func NewSwitchOperatorMsg(owner *Player, data *SwitchOperatorMsgData) *Message {
 	return newMsg(MsgSwitchOperator, owner, data)

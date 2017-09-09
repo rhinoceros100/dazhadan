@@ -34,7 +34,6 @@ type Player struct {
 	totalPrize		int32                   //获得的总奖金数
 
 	playingCards 	*card.PlayingCards	//玩家手上的牌
-	niuCards         []*card.Card
 	observers	 []PlayerObserver
 }
 
@@ -61,7 +60,6 @@ func NewPlayer(id uint64) *Player {
 
 		playingCards:	card.NewPlayingCards(),
 		observers:	make([]PlayerObserver, 0),
-		niuCards:       make([]*card.Card, 0),
 	}
 	return player
 }
@@ -211,13 +209,6 @@ func (player *Player) SetNeedDrop(need_drop bool) {
 	player.needDrop = need_drop
 }
 
-func (player *Player) GetNiuCards() []*card.Card {
-	return player.niuCards
-}
-
-func (player *Player) SetNiuCards(niu_cards []*card.Card) {
-	player.niuCards = niu_cards
-}
 
 func (player *Player) Reset() {
 	//log.Debug(time.Now().Unix(), player,"Player.Reset")
@@ -399,7 +390,7 @@ func (player *Player) OnPlayerSuccessOperated(op *Operate) {
 	case OperateConfirmPlayAlone:
 		player.OnPlayerPlayAlone(op)
 	case OperateSwitchOperator:
-		player.onSwithOperator(op)
+		player.onSwitchOperator(op)
 	case OperateDrop:
 		player.OnDrop(op)
 	case OperatePass:
@@ -465,12 +456,16 @@ func (player *Player) OnPlayerPlayAlone(op *Operate) {
 	}
 }
 
-func (player *Player) onSwithOperator(op *Operate) {
-	if _, ok := op.Data.(*OperateSwitchOperatorData); ok {
+func (player *Player) onSwitchOperator(op *Operate) {
+	if so_data, ok := op.Data.(*OperateSwitchOperatorData); ok {
 		/*if op.Operator == player {
 			return
 		}*/
-		msgData := &SwitchOperatorMsgData{}
+		msgData := &SwitchOperatorMsgData{
+			NeedDropCard:so_data.MustDrop,
+			CanDrop:so_data.CanDrop,
+			SwitchedPlayer:op.Operator,
+		}
 		player.notifyObserver(NewSwitchOperatorMsg(op.Operator, msgData))
 	}
 }
@@ -555,4 +550,230 @@ func (player *Player) GetLeftCardNum() (int) {
 func (player *Player) Drop(cards []*card.Card) bool {
 	log.Debug(time.Now().Unix(), player, "Drop card :", cards)
 	return player.playingCards.DropCards(cards)
+}
+
+func (player *Player) GetCanDrop() bool{
+	canDrop := true
+	cardsType := player.room.GetCardsType()
+	//planeNum := player.room.GetPlaneNum()
+	drop_weight := player.room.GetWeight()
+
+	//计算玩家此时的牌
+	var normal510k, true510k = player.GetHave510K(player.GetPlayingCards().CardsInHand.GetData())
+	var bomb4, bomb5, bomb6, bomb7, bomb8 = 0, 0, 0, 0, 0
+	var c1, c2, c3, straight, pairs, triples = 0, 0, 0, 0, 0, 0
+	var straight_start, straight_end, pairs_start, pairs_end, triples_start, triples_end = 0, 0, 0, 0, 0, 0
+	var bombType = 0
+	if normal510k{
+		bombType = card.CardsType_510K
+	}
+	if true510k{
+		bombType = card.CardsType_TRUE510K
+	}
+
+	//计算每个点数的牌的数量
+	arr := [18]int{}
+	for _, hand_card := range player.GetPlayingCards().CardsInHand.GetData() {
+		arr[hand_card.Weight] ++
+	}
+	//计算玩家可能出现的牌型
+	for weight, num := range arr{
+		if num > 0 {
+			c1 = weight
+			if weight < 16 {
+				if straight_start == 0 {
+					straight_start = weight
+					straight_end = weight
+				}else{
+					if straight_end != weight - 1 {
+						straight_start = 0
+						straight_end = 0
+					}else{
+						straight_end = weight
+					}
+				}
+				if straight_end - straight_start >= 4{
+					straight = straight_start
+				}
+			}
+		}
+		if num > 1 {
+			c2 = weight
+			if weight < 16 {
+				if pairs_start == 0 {
+					pairs_start = weight
+					pairs_end = weight
+				}else{
+					if pairs_end != weight - 1 {
+						pairs_start = 0
+						pairs_end = 0
+					}else{
+						pairs_end = weight
+					}
+				}
+				if pairs_end - pairs_start >= 2{
+					pairs = pairs_start
+				}
+			}
+		}
+		if num > 2 {
+			c3 = weight
+			if weight < 16 {
+				if triples_start == 0 {
+					triples_start = weight
+					triples_end = weight
+				}else{
+					if triples_end != weight - 1 {
+						triples_start = 0
+						triples_end = 0
+					}else{
+						triples_end = weight
+					}
+				}
+				if triples_end - triples_start >= 1{
+					triples = triples_start
+				}
+			}
+		}
+		if num > 3 {
+			bomb4 = weight
+			if bombType < card.CardsType_BOMB4 {
+				bombType = card.CardsType_BOMB4
+			}
+		}
+		if num > 4 {
+			bomb5 = weight
+			if bombType < card.CardsType_BOMB5 {
+				bombType = card.CardsType_BOMB5
+			}
+		}
+		if num > 5 {
+			bomb6 = weight
+			if bombType < card.CardsType_BOMB6 {
+				bombType = card.CardsType_BOMB6
+			}
+		}
+		if num > 6 {
+			bomb7 = weight
+			if bombType < card.CardsType_BOMB7 {
+				bombType = card.CardsType_BOMB7
+			}
+		}
+		if num > 7 {
+			bomb8 = weight
+			if bombType < card.CardsType_BOMB8 {
+				bombType = card.CardsType_BOMB8
+			}
+		}
+	}
+	if arr[16] == 2 && arr[17] == 2 {
+		bombType = card.CardsType_JOKER
+		//bombjoker = 16
+	}
+
+	//判断玩家是否能够要的起牌
+	if cardsType > 20 {//如果出的牌是炸弹，查看手上的牌是否可以拼出更大的炸弹
+		if bombType < cardsType {
+			return false
+		}
+		if bombType > cardsType {
+			return true
+		}
+		if bombType == card.CardsType_510K || bombType == card.CardsType_TRUE510K {
+			return false
+		}
+		if bombType == card.CardsType_BOMB4 {
+			return bomb4 > drop_weight
+		}
+		if bombType == card.CardsType_BOMB5 {
+			return bomb5 > drop_weight
+		}
+		if bombType == card.CardsType_BOMB6 {
+			return bomb6 > drop_weight
+		}
+		if bombType == card.CardsType_BOMB7 {
+			return bomb7 > drop_weight
+		}
+		if bombType == card.CardsType_BOMB8 {
+			return bomb8 > drop_weight
+		}
+	}else {//出的牌是普通牌型
+		if bombType > 20 {
+			return true
+		}
+		if cardsType == card.CardsType_SINGLE {
+			return c1 > drop_weight
+		}
+		if cardsType == card.CardsType_PAIR {
+			return c2 > drop_weight
+		}
+		if cardsType == card.CardsType_32 {
+			return c3 > drop_weight
+		}
+		//顺子，连对，飞机只考虑了权重，未考虑张数，如果玩家出的连牌较多可能实际管不上却返回true，情况较少，可忽略
+		if cardsType == card.CardsType_STAIGHT {
+			return straight > drop_weight
+		}
+		if cardsType == card.CardsType_PAIRS {
+			return pairs > drop_weight
+		}
+		if cardsType == card.CardsType_PLANE32 {
+			return triples > drop_weight
+		}
+	}
+
+	return canDrop
+}
+
+func (player *Player) GetHave510K(cards []*card.Card) (have510k, haveTrue510k bool){
+	var d5, c5, h5, s5, d10, c10, h10, s10, d13, c13, h13, s13 = false, false, false, false, false, false, false, false, false, false, false, false
+	var n5, n10, n13 = 0, 0, 0
+	for _, hand_card := range cards {
+		if hand_card.CardNo == 5 {
+			n5++
+			switch hand_card.CardType {
+			case card.CardType_Diamond:
+				d5 = true
+			case card.CardType_Club:
+				c5 = true
+			case card.CardType_Heart:
+				h5 = true
+			case card.CardType_Spade:
+				s5 = true
+			}
+		}
+		if hand_card.CardNo == 10 {
+			n10++
+			switch hand_card.CardType {
+			case card.CardType_Diamond:
+				d10 = true
+			case card.CardType_Club:
+				c10 = true
+			case card.CardType_Heart:
+				h10 = true
+			case card.CardType_Spade:
+				s10 = true
+			}
+		}
+		if hand_card.CardNo == 13 {
+			n13++
+			switch hand_card.CardType {
+			case card.CardType_Diamond:
+				d13 = true
+			case card.CardType_Club:
+				c13 = true
+			case card.CardType_Heart:
+				h13 = true
+			case card.CardType_Spade:
+				s13 = true
+			}
+		}
+	}
+	if n5 > 0 && n10 > 0 && n13 > 0 {
+		have510k = true
+	}
+	if (d5 && d10 && d13) || (c5 && c10 && c13) || (h5 && h10 && h13) || (s5 && s10 && s13){
+		haveTrue510k = true
+	}
+	return
 }
