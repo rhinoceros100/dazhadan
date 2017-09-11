@@ -46,7 +46,7 @@ func (config *RoomConfig) Init(score_type, prize_type, init_type int32) {
 
 	config.InitType = init_type
 	config.NeedPlayerNum = 4
-	config.MaxPlayGameCnt = 3
+	config.MaxPlayGameCnt = 20
 	config.RandomDropNum = 5
 	config.HaveDujiangDouble = true
 

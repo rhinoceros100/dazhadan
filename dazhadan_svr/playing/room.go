@@ -13,7 +13,7 @@ const (
 	RoomStatusWaitAllPlayerEnter	RoomStatusType = iota	// 等待玩家进入房间
 	RoomStatusWaitAllPlayerReady				// 等待玩家准备
 	RoomStatusGameStart					// 发牌开始打
-	RoomStatusPlayGame					// 正在进行游戏，结束后会进入RoomStatusShowCards
+	RoomStatusPlayGame					// 正在进行游戏，结束后会进入RoomStatusEndPlayGame
 	RoomStatusEndPlayGame					// 游戏结束后会回到等待游戏开始状态，或者进入结束房间状态
 	RoomStatusRoomEnd					// 房间结束状态
 )
@@ -516,6 +516,7 @@ func (room *Room) gameStart() {
 			player.OnWaitPlayAlone(msg)
 		}
 
+		room.switchWaitPlayer(tmpPlayer, false, false, false)
 		is_play_alone = room.waitPlayerPlayAlone(tmpPlayer)
 		if is_play_alone {
 			room.isPlayAlone = true
@@ -554,7 +555,7 @@ func (room *Room) playGame() {
 
 	is_round_end := false
 	if room.opMaster.GetNeedDrop() {
-		room.switchWaitPlayer(room.opMaster, true, true)
+		room.switchWaitPlayer(room.opMaster, true, true, true)
 		room.waitDropCard(room.opMaster, true, true)
 
 		//查看玩家是否出完手牌
@@ -610,7 +611,7 @@ func (room *Room) playGame() {
 		}
 
 		canDrop := tmpPlayer.GetCanDrop()
-		room.switchWaitPlayer(tmpPlayer, false, canDrop)
+		room.switchWaitPlayer(tmpPlayer, false, canDrop, true)
 		is_drop := room.waitDropCard(tmpPlayer, false, canDrop)
 		if is_drop {
 			//查看玩家是否出完手牌
@@ -752,13 +753,15 @@ func (room *Room) switchOpMaster(player *Player, mustDrop bool, canDrop bool, ne
 	}
 }
 
-func (room *Room) switchWaitPlayer(player *Player, mustDrop bool, canDrop bool) {
+func (room *Room) switchWaitPlayer(player *Player, mustDrop bool, canDrop bool, needNotify bool) {
 	log.Debug(time.Now().Unix(), room, "switchWaitPlayer", room.waitOperator, "=>", player)
 	room.waitOperator = player
 
-	op := room.makeSwitchOperatorOperate(player, mustDrop, canDrop)
-	for _, player := range room.players {
-		player.OnPlayerSuccessOperated(op)
+	if needNotify {
+		op := room.makeSwitchOperatorOperate(player, mustDrop, canDrop)
+		for _, player := range room.players {
+			player.OnPlayerSuccessOperated(op)
+		}
 	}
 }
 
