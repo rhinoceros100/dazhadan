@@ -6,36 +6,40 @@ import (
 )
 
 func TestGetCardsType(t *testing.T) {
-	card1 := &Card{CardType: CardType_Diamond,CardNo: 1,}	//方片1
-	card2 := &Card{CardType: CardType_Club,CardNo: 1,}	//梅花1
-	card3 := &Card{CardType: CardType_Diamond,CardNo: 1,}	//方片1
-	card4 := &Card{CardType: CardType_Club,CardNo: 2,}	//梅花2
-	card5 := &Card{CardType: CardType_Heart,CardNo: 2,}	//红桃2
-	card6 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
-	card7 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
-	card8 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
-	card9 := &Card{CardType: CardType_Diamond,CardNo: 2,}	//方片2
+	card1 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card2 := &Card{CardType: CardType_Club,CardNo: 1, Weight:14,}		//梅花1
+	card3 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card4 := &Card{CardType: CardType_Club,CardNo: 2, Weight:15,}		//梅花2
+	card5 := &Card{CardType: CardType_Heart,CardNo: 2, Weight:15,}		//红桃2
+	card6 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	card7 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	card8 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	card9 := &Card{CardType: CardType_Diamond,CardNo: 2, Weight:15,}	//方片2
 
 	card10 := &Card{CardType: CardType_BlackJoker,CardNo: 14, Weight:16}	//小王
 	card11 := &Card{CardType: CardType_BlackJoker,CardNo: 14, Weight:16}	//小王
 	card12 := &Card{CardType: CardType_RedJoker,CardNo: 14, Weight:17}	//大王
 	card13 := &Card{CardType: CardType_RedJoker,CardNo: 14, Weight:17}	//大王
 
-	card14 := &Card{CardType: CardType_Diamond,CardNo: 3,}	//方片3
-	card15 := &Card{CardType: CardType_Diamond,CardNo: 4,}	//方片4
-	card16 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片5
-	card17 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
-	card18 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
-	card19 := &Card{CardType: CardType_Diamond,CardNo: 3,}	//方片3
-	card20 := &Card{CardType: CardType_Diamond,CardNo: 4,}	//方片4
-	card21 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片5
-	card22 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
-	card23 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
-	card24 := &Card{CardType: CardType_Spade,CardNo: 3,}	//黑桃3
-	card25 := &Card{CardType: CardType_Spade,CardNo: 4,}	//黑桃4
-	card26 := &Card{CardType: CardType_Spade,CardNo: 5,}	//黑桃5
-	card27 := &Card{CardType: CardType_Spade,CardNo: 6,}	//方片6
-	card28 := &Card{CardType: CardType_Spade,CardNo: 7,}	//方片7
+	card14 := &Card{CardType: CardType_Diamond,CardNo: 3, Weight:3,}	//方片3
+	card15 := &Card{CardType: CardType_Diamond,CardNo: 4, Weight:4,}	//方片4
+	card16 := &Card{CardType: CardType_Diamond,CardNo: 5, Weight:5,}	//方片5
+	card17 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//方片6
+	card18 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//方片7
+	card19 := &Card{CardType: CardType_Diamond,CardNo: 3, Weight:3,}	//方片3
+	card20 := &Card{CardType: CardType_Diamond,CardNo: 4, Weight:4,}	//方片4
+	card21 := &Card{CardType: CardType_Diamond,CardNo: 5, Weight:5,}	//方片5
+	card22 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//方片6
+	card23 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//方片7
+	card24 := &Card{CardType: CardType_Spade,CardNo: 3, Weight:3,}		//黑桃3
+	card25 := &Card{CardType: CardType_Spade,CardNo: 4, Weight:4,}		//黑桃4
+	card26 := &Card{CardType: CardType_Spade,CardNo: 5, Weight:5,}		//黑桃5
+	card27 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//黑桃6
+	card28 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//黑桃7
+
+	card29 := &Card{CardType: CardType_Spade,CardNo: 13, Weight:13,}		//黑桃K
+	card30 := &Card{CardType: CardType_Diamond,CardNo: 13, Weight:13,}	//方片K
+	card31 := &Card{CardType: CardType_Heart,CardNo: 13, Weight:13,}		//红桃K
 
 	cards1 := make([]*Card, 0)
 	cards1 = append(cards1, card1)
@@ -60,7 +64,7 @@ func TestGetCardsType(t *testing.T) {
 
 	cards4 := make([]*Card, 0)
 	cards4 = append(cards4, card10)
-	//cards4 = append(cards4, card11)
+	cards4 = append(cards4, card11)
 	cards4 = append(cards4, card12)
 	drop_cards4 := CreateNewCards(cards4)
 
@@ -147,30 +151,58 @@ func TestGetCardsType(t *testing.T) {
 	cards11 = append(cards11, card28)
 	drop_cards11 := CreateNewCards(cards11)
 
-	t.Log(GetCardsType(drop_cards1, true))
-	t.Log(GetCardsType(drop_cards2, false))
-	t.Log(GetCardsType(drop_cards3, false))
-	t.Log(GetCardsType(drop_cards4, false))
-	t.Log(GetCardsType(drop_cards5, false))
-	t.Log(GetCardsType(drop_cards6, false))
-	t.Log(GetCardsType(drop_cards7, false))
-	t.Log(GetCardsType(drop_cards7, true))
-	t.Log(GetCardsType(drop_cards8, false))
-	t.Log(GetCardsType(drop_cards9, false))
-	t.Log(GetCardsType(drop_cards10, false))
-	t.Log(GetCardsType(drop_cards11, false))
-	t.Log(GetCardsType(drop_cards11, true))
+	cards12 := make([]*Card, 0)
+	cards12 = append(cards12, card1)
+	cards12 = append(cards12, card2)
+	cards12 = append(cards12, card3)
+	cards12 = append(cards12, card4)
+	cards12 = append(cards12, card5)
+	cards12 = append(cards12, card10)
+	cards12 = append(cards12, card11)
+	cards12 = append(cards12, card29)
+	cards12 = append(cards12, card30)
+	cards12 = append(cards12, card31)
+	drop_cards12 := CreateNewCards(cards12)
+
+	cards13 := make([]*Card, 0)
+	cards13 = append(cards13, card1)
+	cards13 = append(cards13, card2)
+	cards13 = append(cards13, card3)
+	cards13 = append(cards13, card4)
+	cards13 = append(cards13, card5)
+	cards13 = append(cards13, card6)
+	cards13 = append(cards13, card7)
+	cards13 = append(cards13, card10)
+	cards13 = append(cards13, card11)
+	cards13 = append(cards13, card12)
+	drop_cards13 := CreateNewCards(cards13)
+
+	t.Log(GetCardsType(drop_cards1, true, 0, 0))		//三带二 5
+	t.Log(GetCardsType(drop_cards2, false, 0, 0))		//2的四炸 24
+	t.Log(GetCardsType(drop_cards3, false, 0, 0))		//王炸 28
+	t.Log(GetCardsType(drop_cards4, false, 0, 0))		//无牌型 0
+	t.Log(GetCardsType(drop_cards5, false, 0, 0))		//顺子 2
+	t.Log(GetCardsType(drop_cards6, false, 0, 0))		//无牌型 0
+	t.Log(GetCardsType(drop_cards7, false, 0, 0))		//无牌型 0
+	t.Log(GetCardsType(drop_cards7, true, 0, 0))		//六带五 8
+	t.Log(GetCardsType(drop_cards8, false, 0, 0))		//三带二飞机 11
+	t.Log(GetCardsType(drop_cards9, false, 0, 0))		//连对 4
+	t.Log(GetCardsType(drop_cards10, false, 0, 0))		//三带二飞机 11
+	t.Log(GetCardsType(drop_cards11, false, 0, 0))		//三带二飞机 11
+	t.Log(GetCardsType(drop_cards11, true, 0, 0))		//三带二飞机 11
+	t.Log(GetCardsType(drop_cards12, false, 0, 0))		//三带二飞机 11
+	t.Log(GetCardsType(drop_cards13, false, 0, 0))		//三带二飞机 11
 }
 
 func TestGetSameCardsNum(t *testing.T) {
-	card1 := &Card{CardType: CardType_Diamond,CardNo: 1,}	//方片1
-	card2 := &Card{CardType: CardType_Club,CardNo: 1,}	//梅花1
-	card3 := &Card{CardType: CardType_Diamond,CardNo: 1,}	//方片1
-	card4 := &Card{CardType: CardType_Club,CardNo: 2,}	//梅花2
-	card5 := &Card{CardType: CardType_Heart,CardNo: 2,}	//红桃2
-	card6 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
-	card7 := &Card{CardType: CardType_Spade,CardNo: 5,}	//黑桃5
-	card8 := &Card{CardType: CardType_Spade,CardNo: 8,}	//黑桃8
+	card1 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card2 := &Card{CardType: CardType_Club,CardNo: 1, Weight:14,}		//梅花1
+	card3 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card4 := &Card{CardType: CardType_Club,CardNo: 2, Weight:15,}		//梅花2
+	card5 := &Card{CardType: CardType_Heart,CardNo: 2, Weight:15,}		//红桃2
+	card6 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	card7 := &Card{CardType: CardType_Spade,CardNo: 5, Weight:5,}		//黑桃5
+	card8 := &Card{CardType: CardType_Spade,CardNo: 8, Weight:8,}		//黑桃8
 	//card9 := &Card{CardType: CardType_Diamond,CardNo: 2,}	//方片2
 
 	cards1 := make([]*Card, 0)
@@ -342,4 +374,47 @@ func TestCanCover(t *testing.T) {
 	assert.Equal(t, canCover(CardsType_BOMB4, 2, 3, roo5), false)
 	assert.Equal(t, canCover(CardsType_BOMB4, 2, 8, roo5), true)
 	assert.Equal(t, canCover(CardsType_BOMB7, 2, 2, roo5), true)
+}
+
+func TestCheck3Plane(t *testing.T) {
+	card1 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card2 := &Card{CardType: CardType_Club,CardNo: 1, Weight:14,}		//梅花1
+	card3 := &Card{CardType: CardType_Diamond,CardNo: 1, Weight:14,}	//方片1
+	card4 := &Card{CardType: CardType_Club,CardNo: 2, Weight:15,}		//梅花2
+	card5 := &Card{CardType: CardType_Heart,CardNo: 2, Weight:15,}		//红桃2
+	card6 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	card7 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	//card8 := &Card{CardType: CardType_Spade,CardNo: 2, Weight:15,}		//黑桃2
+	//card9 := &Card{CardType: CardType_Diamond,CardNo: 2, Weight:15,}	//方片2
+
+	card14 := &Card{CardType: CardType_Diamond,CardNo: 3, Weight:3,}	//方片3
+	card15 := &Card{CardType: CardType_Diamond,CardNo: 4, Weight:4,}	//方片4
+	card16 := &Card{CardType: CardType_Diamond,CardNo: 5, Weight:5,}	//方片5
+	//card17 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//方片6
+	//card18 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//方片7
+	//card19 := &Card{CardType: CardType_Diamond,CardNo: 3, Weight:3,}	//方片3
+	//card20 := &Card{CardType: CardType_Diamond,CardNo: 4, Weight:4,}	//方片4
+	//card21 := &Card{CardType: CardType_Diamond,CardNo: 5, Weight:5,}	//方片5
+	//card22 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//方片6
+	//card23 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//方片7
+	//card24 := &Card{CardType: CardType_Spade,CardNo: 3, Weight:3,}		//黑桃3
+	//card25 := &Card{CardType: CardType_Spade,CardNo: 4, Weight:4,}		//黑桃4
+	//card26 := &Card{CardType: CardType_Spade,CardNo: 5, Weight:5,}		//黑桃5
+	//card27 := &Card{CardType: CardType_Spade,CardNo: 6, Weight:6,}		//黑桃6
+	//card28 := &Card{CardType: CardType_Spade,CardNo: 7, Weight:7,}		//黑桃7
+
+	cards1 := make([]*Card, 0)
+	cards1 = append(cards1, card1)
+	cards1 = append(cards1, card2)
+	cards1 = append(cards1, card3)
+	cards1 = append(cards1, card4)
+	cards1 = append(cards1, card5)
+	cards1 = append(cards1, card6)
+	cards1 = append(cards1, card7)
+	cards1 = append(cards1, card14)
+	cards1 = append(cards1, card15)
+	cards1 = append(cards1, card16)
+
+	t.Log(Check3Plane(cards1, false, CardsType_PLANE32, 2))		//三带二飞机 11
+	t.Log(Check3Plane(cards1, false, CardsType_PLANE32, 0))		//三带二飞机 11
 }

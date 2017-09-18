@@ -348,7 +348,7 @@ func (room *Room) waitDropCard(player *Player, mustDrop bool, canDrop bool) bool
 				drop_cards := card.CreateNewCards(dropCards)
 
 				data := &OperateDropData{whatGroup:dropCards}
-				data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards)
+				data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards, 0, 0)
 				can_cover := room.canCover(data.cardsType, data.planeNum, data.weight)
 				log.Debug("******can_cover:", can_cover)
 				op := NewOperateDrop(player, data)
@@ -482,6 +482,27 @@ func (room *Room) waitAllPlayerReady() {
 
 func (room *Room) gameStart() {
 	log.Debug(time.Now().Unix(), room, "gameStart", room.playedGameCnt)
+
+	//测试八炸数量
+	bomb4, bomb5, bomb6, bomb7, bomb8, bomb_joker := 0, 0, 0, 0, 0, 0
+	for i := 0; i < 100000; i++ {
+		room.cardPool.ReGenerate()
+		room.putCardsToPlayers(card.INIT_CARD_NUM, room.config.InitType, 5)
+		for _, player := range room.players {
+			num4, num5, num6, num7, num8, num_joker := player.GetBomb8Num()
+			bomb4 += num4
+			bomb5 += num5
+			bomb6 += num6
+			bomb7 += num7
+			bomb8 += num8
+			bomb_joker += num_joker
+			player.Reset()
+		}
+		//log.Debug("i:", i, " bomb4:", bomb4, " bomb5:", bomb5, " bomb6:", bomb6, " bomb7:", bomb7, " bomb8:", bomb8, " bomb_joker:", bomb_joker)
+		//log.Debug("====================")
+	}
+	log.Debug(time.Now().Unix(), "bomb4:", bomb4, " bomb5:", bomb5, " bomb6:", bomb6, " bomb7:", bomb7, " bomb8:", bomb8, " bomb_joker:", bomb_joker)
+	time.Sleep(time.Second * 1000)
 
 	// 重置牌池, 洗牌
 	room.Reset()
@@ -1200,7 +1221,7 @@ func (room *Room) getMinUsablePosition() (int32)  {
 
 //给所有玩家发牌
 func (room *Room) putCardsToPlayers(init_num int, init_type int32, fanpai_seq int) (master, assist *Player, fanpai *card.Card) {
-	log.Debug(time.Now().Unix(), room, "Room.putCardsToPlayers, init_type:", init_type)
+	//log.Debug(time.Now().Unix(), room, "Room.putCardsToPlayers, init_type:", init_type)
 	master, assist = nil, nil
 	fanpai = nil
 
@@ -1214,6 +1235,7 @@ func (room *Room) putCardsToPlayers(init_num int, init_type int32, fanpai_seq in
 		for num := 0; num < init_num; num++ {
 			for _, player := range room.players {
 				put_card := room.putCardToPlayer(player)
+				//log.Debug("put_card:", put_card)
 				if fanpai.SameAs(put_card) {
 					master = player
 				}else if fanpai.SameCardTypeNoAs(put_card) {

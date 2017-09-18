@@ -306,7 +306,12 @@ func (player *Player) OperateDropCard(cards []*card.Card) bool {
 		is_last_cards = true
 	}
 	drop_cards := card.CreateNewCards(cards)
-	data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards)
+	check_cards_type, check_plane_num := 0, 0
+	if player.room.GetCardsType() == card.CardsType_PLANE32 {
+		check_cards_type = card.CardsType_PLANE32
+		check_plane_num = player.room.GetPlaneNum()
+	}
+	data.cardsType, data.planeNum, data.weight = card.GetCardsType(drop_cards, is_last_cards, check_cards_type, check_plane_num)
 	can_cover := player.room.canCover(data.cardsType, data.planeNum, data.weight)
 	log.Debug("******can_cover:", can_cover)
 	op := NewOperateDrop(player, data)
@@ -550,6 +555,38 @@ func (player *Player) GetLeftCardNum() (int) {
 func (player *Player) Drop(cards []*card.Card) bool {
 	log.Debug(time.Now().Unix(), player, "Drop card :", cards)
 	return player.playingCards.DropCards(cards)
+}
+
+func (player *Player) GetBomb8Num() (bomb4_num, bomb5_num, bomb6_num, bomb7_num, bomb8_num, bomb_joker int) {
+	//log.Debug("GetBomb8Num")
+	nums := [15]int{}
+	for _, hand_card := range player.playingCards.CardsInHand.GetData() {
+		nums[hand_card.CardNo]++
+	}
+
+	bomb4_num, bomb5_num, bomb6_num, bomb7_num, bomb8_num, bomb_joker = 0, 0, 0, 0, 0, 0
+	for i, num := range nums {
+		//log.Debug("i:", i, "num:", num)
+		if num >= 4 {
+			bomb4_num ++
+		}
+		if num >= 5 {
+			bomb5_num ++
+		}
+		if num >= 6 {
+			bomb6_num ++
+		}
+		if num >= 7 {
+			bomb7_num ++
+		}
+		if num >= 8 {
+			bomb8_num ++
+		}
+		if i == 14 && num == 4 {
+			bomb_joker ++
+		}
+	}
+	return
 }
 
 func (player *Player) GetCanDrop() bool{

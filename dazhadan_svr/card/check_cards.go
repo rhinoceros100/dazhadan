@@ -1,7 +1,6 @@
 package card
 
-func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_num int, weight int) {
-	the_cards.Sort()
+func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_plane_num int) (cards_type int, plane_num int, weight int) {
 	the_cards.Sort()
 	drop_cards := the_cards.GetData()
 	cards_type = CardsType_NO
@@ -43,11 +42,20 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 		return cards_type, plane_num, weight
 	}
 	if cards_len == 4 {
+		//判断是否为王炸
+		is_bomb_joker := true
+		for _, drop_card := range drop_cards {
+			if drop_card.CardNo != 14 {
+				is_bomb_joker = false
+			}
+		}
+		if is_bomb_joker {
+			cards_type = CardsType_JOKER
+			return cards_type, plane_num, weight
+		}
 		//王炸或者四炸
 		if most == 4 {
-			if weight == 16 {
-				cards_type = CardsType_JOKER
-			}else if weight == 15 {
+			if weight == 15 {
 				cards_type = CardsType_BOMB5
 				weight = 2
 			}else {
@@ -62,6 +70,11 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 			}
 		}
 		return CardsType_NO, plane_num, weight
+	}
+
+	//如果要判定飞机，优先判定
+	if check_cards_type == CardsType_PLANE32 {
+		return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
 	}
 
 	if cards_len>= 5 && cards_len <= 8 {
@@ -117,7 +130,11 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 					}
 				}
 			}
-			return
+			if cards_type == CardsType_NO {
+				return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
+			}else {
+				return
+			}
 		}
 		if most == 2 {
 			same_len := len(sames)
@@ -263,7 +280,11 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 					}
 				}
 			}
-			return
+			if cards_type == CardsType_NO {
+				return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
+			}else {
+				return
+			}
 		}
 
 		if most == 2 {
@@ -285,11 +306,60 @@ func GetCardsType(the_cards *Cards, is_last_cards bool) (cards_type int, plane_n
 	return CardsType_NO, plane_num, weight
 }
 
+//检查牌型是否为三带二飞机的牌型  如3334444556
+func Check3Plane(drop_cards []*Card, is_last_cards bool, check_cards_type, check_plane_num int) (cards_type int, plane_num int, weight int) {
+	cards_type = CardsType_NO
+	plane_num = 0
+	weight = 0
+	take := 2 * 3 -1
+	cards_len := len(drop_cards)
+	sames := GetMoreThanNCardsNum(drop_cards, 3)
+	same_len := len(sames)
+
+	//check_plane_num>0时为指定牌型，=0时为查找是否符合飞机牌型
+	if check_plane_num > 0 {
+		if same_len < check_plane_num {
+			return
+		}
+		if cards_len == take * check_plane_num || (is_last_cards && (cards_len < take * check_plane_num)) {
+			diff := same_len - check_plane_num
+			for i := 0; i <= diff; i++ {
+				if IsStraight(sames[diff-i:same_len-i]) {
+					plane_num = check_plane_num
+					weight = sames[diff-i]
+					cards_type = CardsType_PLANE32
+					return
+				}
+			}
+		}
+		return
+	}else {
+		if same_len < 2 {
+			return
+		}
+
+		for j := same_len; j >= 2; j-- {
+			diff := same_len - j
+			if cards_len == take * j || (is_last_cards && (cards_len < take * j)) {
+				for i := 0; i <= diff; i++ {
+					if IsStraight(sames[diff-i:same_len-i]) {
+						plane_num = j
+						weight = sames[diff-i]
+						cards_type = CardsType_PLANE32
+						return
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
 //获取一组牌中数量最多的数字相同的牌的数量
 func GetSameCardsNum(drop_cards []*Card) (most int, same_card_nums []int) {
-	arr := [15]int{}
+	arr := [18]int{}
 	for _, drop_card := range drop_cards {
-		arr[drop_card.CardNo] ++
+		arr[drop_card.Weight] ++
 	}
 
 	same_card_nums = make([]int, 0)
@@ -301,6 +371,22 @@ func GetSameCardsNum(drop_cards []*Card) (most int, same_card_nums []int) {
 			same_card_nums = append(same_card_nums, i)
 		}else if num == most {
 			same_card_nums = append(same_card_nums, i)
+		}
+	}
+	return
+}
+
+//获取一组牌中多于N张的牌
+func GetMoreThanNCardsNum(drop_cards []*Card, min_num int) (card_nums []int) {
+	arr := [18]int{}
+	for _, drop_card := range drop_cards {
+		arr[drop_card.Weight] ++
+	}
+
+	card_nums = make([]int, 0)
+	for i, num := range arr {
+		if num >= min_num {
+			card_nums = append(card_nums, i)
 		}
 	}
 	return
@@ -350,7 +436,7 @@ func IsStraight(nums []int) (is_straight bool) {
 	//获取牌的权重3-15
 	weight_arr := [16]bool{}
 	for _, num := range nums {
-		weight := GetWeightByCardNum(num)
+		weight := num
 		if weight == 16 {
 			return false
 		}
@@ -394,7 +480,7 @@ func GetWeightByCardNum(num int) (weight int) {
 func GetStraightWeight(nums []int) (weight int) {
 	weight = 18
 	for _, num := range nums {
-		w := GetWeightByCardNum(num)
+		w := num
 		if w < weight {
 			weight = w
 		}
