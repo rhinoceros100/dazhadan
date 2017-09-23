@@ -484,7 +484,7 @@ func (room *Room) gameStart() {
 	log.Debug(time.Now().Unix(), room, "gameStart", room.playedGameCnt)
 
 	//测试八炸数量
-	bomb4, bomb5, bomb6, bomb7, bomb8, bomb_joker := 0, 0, 0, 0, 0, 0
+	/*bomb4, bomb5, bomb6, bomb7, bomb8, bomb_joker := 0, 0, 0, 0, 0, 0
 	for i := 0; i < 100000; i++ {
 		room.cardPool.ReGenerate()
 		room.putCardsToPlayers(card.INIT_CARD_NUM, room.config.InitType, 5)
@@ -502,7 +502,7 @@ func (room *Room) gameStart() {
 		//log.Debug("====================")
 	}
 	log.Debug(time.Now().Unix(), "bomb4:", bomb4, " bomb5:", bomb5, " bomb6:", bomb6, " bomb7:", bomb7, " bomb8:", bomb8, " bomb_joker:", bomb_joker)
-	time.Sleep(time.Second * 1000)
+	time.Sleep(time.Second * 1000)*/
 
 	// 重置牌池, 洗牌
 	room.Reset()

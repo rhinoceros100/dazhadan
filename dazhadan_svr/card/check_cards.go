@@ -74,7 +74,9 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 
 	//如果要判定飞机，优先判定
 	if check_cards_type == CardsType_PLANE32 {
-		return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
+		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
+	}else if check_cards_type == CardsType_PLANE43 {
+		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
 	}
 
 	if cards_len>= 5 && cards_len <= 8 {
@@ -115,7 +117,11 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 					cards_type = CardsType_PLANE43
 				}
 			}
-			return
+			if cards_type == CardsType_NO {
+				return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
+			}else {
+				return
+			}
 		}
 		if most == 3 {
 			if cards_len == 5 {
@@ -131,7 +137,7 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 				}
 			}
 			if cards_type == CardsType_NO {
-				return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
+				return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
 			}else {
 				return
 			}
@@ -281,7 +287,12 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 				}
 			}
 			if cards_type == CardsType_NO {
-				return Check3Plane(drop_cards, is_last_cards, check_cards_type, check_plane_num)
+				cards_type, plane_num, weight = CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
+				if cards_type == CardsType_NO {
+					return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
+				}else {
+					return
+				}
 			}else {
 				return
 			}
@@ -306,14 +317,17 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 	return CardsType_NO, plane_num, weight
 }
 
-//检查牌型是否为三带二飞机的牌型  如3334444556
-func Check3Plane(drop_cards []*Card, is_last_cards bool, check_cards_type, check_plane_num int) (cards_type int, plane_num int, weight int) {
+//检查牌型是否为三带二/四带三飞机的牌型  如3334444556 33334444455678
+func CheckNPlane(drop_cards []*Card, is_last_cards bool, check_cards_type, check_plane_num, same_num int) (cards_type int, plane_num int, weight int) {
 	cards_type = CardsType_NO
 	plane_num = 0
 	weight = 0
-	take := 2 * 3 -1
+	if same_num < 3 || same_num > 4 {
+		return
+	}
+	take := 2 * same_num -1
 	cards_len := len(drop_cards)
-	sames := GetMoreThanNCardsNum(drop_cards, 3)
+	sames := GetMoreThanNCardsNum(drop_cards, same_num)
 	same_len := len(sames)
 
 	//check_plane_num>0时为指定牌型，=0时为查找是否符合飞机牌型
@@ -327,7 +341,7 @@ func Check3Plane(drop_cards []*Card, is_last_cards bool, check_cards_type, check
 				if IsStraight(sames[diff-i:same_len-i]) {
 					plane_num = check_plane_num
 					weight = sames[diff-i]
-					cards_type = CardsType_PLANE32
+					cards_type = check_cards_type
 					return
 				}
 			}
@@ -345,7 +359,56 @@ func Check3Plane(drop_cards []*Card, is_last_cards bool, check_cards_type, check
 					if IsStraight(sames[diff-i:same_len-i]) {
 						plane_num = j
 						weight = sames[diff-i]
-						cards_type = CardsType_PLANE32
+						cards_type = check_cards_type
+						return
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+//检查牌型是否为四带三飞机的牌型  如33334444455678
+func Check4Plane(drop_cards []*Card, is_last_cards bool, check_cards_type, check_plane_num int) (cards_type int, plane_num int, weight int) {
+	cards_type = CardsType_NO
+	plane_num = 0
+	weight = 0
+	take := 2 * 4 -1
+	cards_len := len(drop_cards)
+	sames := GetMoreThanNCardsNum(drop_cards, 4)
+	same_len := len(sames)
+
+	//check_plane_num>0时为指定牌型，=0时为查找是否符合飞机牌型
+	if check_plane_num > 0 {
+		if same_len < check_plane_num {
+			return
+		}
+		if cards_len == take * check_plane_num || (is_last_cards && (cards_len < take * check_plane_num)) {
+			diff := same_len - check_plane_num
+			for i := 0; i <= diff; i++ {
+				if IsStraight(sames[diff-i:same_len-i]) {
+					plane_num = check_plane_num
+					weight = sames[diff-i]
+					cards_type = CardsType_PLANE43
+					return
+				}
+			}
+		}
+		return
+	}else {
+		if same_len < 2 {
+			return
+		}
+
+		for j := same_len; j >= 2; j-- {
+			diff := same_len - j
+			if cards_len == take * j || (is_last_cards && (cards_len < take * j)) {
+				for i := 0; i <= diff; i++ {
+					if IsStraight(sames[diff-i:same_len-i]) {
+						plane_num = j
+						weight = sames[diff-i]
+						cards_type = CardsType_PLANE43
 						return
 					}
 				}
