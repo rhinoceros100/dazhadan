@@ -72,13 +72,6 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 		return CardsType_NO, plane_num, weight
 	}
 
-	//如果要判定飞机，优先判定
-	if check_cards_type == CardsType_PLANE32 {
-		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
-	}else if check_cards_type == CardsType_PLANE43 {
-		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
-	}
-
 	if cards_len>= 5 && cards_len <= 8 {
 		//炸弹
 		if most == cards_len {
@@ -104,11 +97,9 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 					cards_type = CardsType_65
 				case 5:
 					cards_type = CardsType_54
-				case 4:
-					cards_type = CardsType_43
 				}
 			}
-			if most == 4 && cards_len == 7 {
+			if (most == 4 && cards_len == 7) || (most == 4 && cards_len < 7 && is_last_cards){
 				cards_type = CardsType_43
 			}
 			if most == 4 && len(sames) == 2 && is_last_cards {
@@ -118,7 +109,7 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 				}
 			}
 			if cards_type == CardsType_NO {
-				return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
+				return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
 			}else {
 				return
 			}
@@ -136,11 +127,7 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 					}
 				}
 			}
-			if cards_type == CardsType_NO {
-				return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
-			}else {
-				return
-			}
+			return
 		}
 		if most == 2 {
 			same_len := len(sames)
@@ -162,6 +149,13 @@ func GetCardsType(the_cards *Cards, is_last_cards bool, check_cards_type, check_
 			cards_type = CardsType_STAIGHT
 		}
 		return
+	}
+
+	//如果要判定飞机，优先判定
+	if check_cards_type == CardsType_PLANE32 {
+		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE32, check_plane_num, 3)
+	}else if check_cards_type == CardsType_PLANE43 {
+		return CheckNPlane(drop_cards, is_last_cards, CardsType_PLANE43, check_plane_num, 4)
 	}
 
 	if cards_len > 8 {

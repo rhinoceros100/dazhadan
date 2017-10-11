@@ -415,6 +415,28 @@ func TestCheck3Plane(t *testing.T) {
 	cards1 = append(cards1, card15)
 	cards1 = append(cards1, card16)
 
-	t.Log(Check3Plane(cards1, false, CardsType_PLANE32, 2))		//三带二飞机 11
-	t.Log(Check3Plane(cards1, false, CardsType_PLANE32, 0))		//三带二飞机 11
+	t.Log(CheckNPlane(cards1, false, CardsType_PLANE32, 2, 3))		//三带二飞机 11
+	t.Log(CheckNPlane(cards1, false, CardsType_PLANE32, 0, 3))		//三带二飞机 11
+}
+
+func TestSpecialCards(t *testing.T)  {
+	card1 := &Card{CardType: CardType_Diamond,CardNo: 5,}	//方片5
+	card1.MakeIDWeight(1)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card1)
+	card2 := &Card{CardType: CardType_Club,CardNo: 10,}	//梅花10
+	card2.MakeIDWeight(2)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card2)
+	card3 := &Card{CardType: CardType_Diamond,CardNo: 13,}	//方片K
+	card3.MakeIDWeight(1)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card3)
+	card4 := &Card{CardType: CardType_Diamond,CardNo: 10,}	//方片10
+	card4.MakeIDWeight(2)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card4)
+	card5 := &Card{CardType: CardType_Heart,CardNo: 2,}	//红桃2
+	card5.MakeIDWeight(2)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card5)
+	card6 := &Card{CardType: CardType_Spade,CardNo: 2,}	//黑桃2
+	card6.MakeIDWeight(1)//1表示第一副牌，2表示第二副牌
+	pool.cards.AppendCard(card6)
+	
 }
